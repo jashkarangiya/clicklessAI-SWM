@@ -1,0 +1,134 @@
+/**
+ * ClickLess AI – Global CSS
+ *
+ * Purpose:
+ *   1. CSS custom property injection (--cl-* tokens) for dark/light schemes
+ *   2. Base resets and box-model helpers
+ *   3. Smooth scrolling and reduced-motion respect
+ *   4. Typography baseline
+ *
+ * NOTE: No component-specific styles here. All component styles live in
+ * Mantine theme overrides or component-level style props.
+ */
+
+/* ── Google Fonts (loaded via next/font — this is a fallback reference) ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ── Dark theme CSS custom properties ────────────────────────────────────── */
+[data-mantine-color-scheme="dark"] {
+  --cl-bg: #0A1118;
+  --cl-bg-subtle: #0E1721;
+  --cl-surface: #131D2A;
+  --cl-surface-alt: #1A2636;
+  --cl-surface-raised: #223145;
+  --cl-border: #2B3B52;
+  --cl-border-strong: #3D5475;
+  --cl-brand: #2D9CDB;
+  --cl-brand-soft: #186A9B;
+  --cl-brand-glow: #56CCF2;
+  --cl-text-primary: #F0F6FC;
+  --cl-text-secondary: #B1C5D8;
+  --cl-text-muted: #768EAB;
+  --cl-success: #34D399;
+  --cl-success-soft: #064E3B;
+  --cl-warning: #FBBF24;
+  --cl-warning-soft: #431407;
+  --cl-error: #F87171;
+  --cl-error-soft: #450A0A;
+  --cl-info: #60A5FA;
+  --cl-info-soft: #1E3A5F;
+  --cl-overlay: rgba(10, 17, 24, 0.85);
+}
+
+/* ── Light theme CSS custom properties ───────────────────────────────────── */
+[data-mantine-color-scheme="light"] {
+  --cl-bg: #F8FAFC;
+  --cl-bg-subtle: #F1F5F9;
+  --cl-surface: #FFFFFF;
+  --cl-surface-alt: #E2E8F0;
+  --cl-surface-raised: #CBD5E1;
+  --cl-border: #CBD5E1;
+  --cl-border-strong: #94A3B8;
+  --cl-brand: #2D9CDB;
+  --cl-brand-soft: #E0F2FE;
+  --cl-brand-glow: #0A7EBD;
+  --cl-text-primary: #0F172A;
+  --cl-text-secondary: #475569;
+  --cl-text-muted: #64748B;
+  --cl-success: #059669;
+  --cl-success-soft: #D1FAE5;
+  --cl-warning: #D97706;
+  --cl-warning-soft: #FEF3C7;
+  --cl-error: #DC2626;
+  --cl-error-soft: #FEE2E2;
+  --cl-info: #2563EB;
+  --cl-info-soft: #DBEAFE;
+  --cl-overlay: rgba(15, 23, 42, 0.6);
+}
+
+/* ── Base resets ─────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  background-color: var(--cl-bg);
+  color: var(--cl-text-primary);
+  font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+/* ── Focus ring ──────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--cl-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Scrollbar (webkit) ───────────────────────────────────────────────────  */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--cl-bg-subtle);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--cl-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cl-border-strong);
+}
+
+/* ── Selection ────────────────────────────────────────────────────────────  */
+::selection {
+  background: rgba(45, 156, 219, 0.3);
+  color: var(--cl-text-primary);
+}
