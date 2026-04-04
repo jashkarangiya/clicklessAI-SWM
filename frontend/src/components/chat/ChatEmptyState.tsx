@@ -2,6 +2,7 @@
 /**
  * ClickLess AI – Chat Empty State
  */
+import { useState } from 'react';
 import { Stack, Text, Box, Button, SimpleGrid } from '@mantine/core';
 import { IconSearch, IconShoppingCart, IconStar, IconBolt } from '@tabler/icons-react';
 import { BrandLockup } from '@/components/branding/BrandLockup';
@@ -57,34 +58,45 @@ export function ChatEmptyState({ onSuggestion }: ChatEmptyStateProps) {
           </Text>
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs" style={{ padding: '0 4px 4px' }}>
             {SUGGESTIONS.map((s) => (
-              <Button
+              <SuggestionButton
                 key={s.text}
-                variant="subtle"
-                leftSection={s.icon}
+                icon={s.icon}
+                text={s.text}
                 onClick={() => onSuggestion(s.text)}
-                size="sm"
-                style={{
-                  justifyContent: 'flex-start',
-                  color: 'var(--cl-text-secondary)',
-                  textAlign: 'left',
-                  height: 'auto',
-                  padding: '8px 12px',
-                  whiteSpace: 'normal',
-                  lineHeight: 1.4,
-                  border: '1px solid transparent',
-                  borderRadius: 8,
-                  '&:hover': {
-                    backgroundColor: 'var(--cl-surface-alt)',
-                    borderColor: 'var(--cl-border)',
-                  },
-                }}
-              >
-                {s.text}
-              </Button>
+              />
             ))}
           </SimpleGrid>
         </Box>
       </Stack>
     </Box>
+  );
+}
+
+function SuggestionButton({ icon, text, onClick }: { icon: React.ReactNode; text: string; onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <Button
+      variant="subtle"
+      leftSection={icon}
+      onClick={onClick}
+      size="sm"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        justifyContent: 'flex-start',
+        color: 'var(--cl-text-secondary)',
+        textAlign: 'left',
+        height: 'auto',
+        padding: '8px 12px',
+        lineHeight: 1.4,
+        border: '1px solid',
+        borderColor: hovered ? 'var(--cl-border)' : 'transparent',
+        backgroundColor: hovered ? 'var(--cl-surface-alt)' : 'transparent',
+        borderRadius: 8,
+      }}
+      styles={{ label: { whiteSpace: 'normal', textAlign: 'left', flex: 1 } }}
+    >
+      {text}
+    </Button>
   );
 }

@@ -19,6 +19,7 @@ export function ChatInput({
   placeholder = 'Message ClickLess AI…',
 }: ChatInputProps) {
   const [value, setValue] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSend = useCallback(() => {
@@ -50,11 +51,11 @@ export function ChatInput({
           gap: 8,
           alignItems: 'flex-end',
           backgroundColor: 'var(--cl-surface)',
-          border: '1px solid var(--cl-border)',
+          border: '1px solid',
+          borderColor: isFocused ? 'var(--cl-border-strong)' : 'var(--cl-border)',
           borderRadius: 12,
           padding: '6px 6px 6px 12px',
           transition: 'border-color 0.2s',
-          '&:focus-within': { borderColor: 'var(--cl-border-strong)' },
         }}
       >
         <Textarea
@@ -70,6 +71,8 @@ export function ChatInput({
           id="chat-input"
           aria-label="Chat message input"
           style={{ flex: 1 }}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           styles={{
             input: {
               border: 'none',
@@ -82,7 +85,6 @@ export function ChatInput({
               color: 'var(--cl-text-primary)',
               lineHeight: 1.6,
               fontSize: '0.9rem',
-              '&::placeholder': { color: 'var(--cl-text-muted)' },
             },
           }}
         />

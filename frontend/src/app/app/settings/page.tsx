@@ -6,7 +6,7 @@
  */
 import {
   Box, Tabs, Text, Stack, Divider, Button, Group,
-  Badge, Slider, Switch, MultiSelect, NumberInput, Select,
+  Badge, Slider, Switch, TagsInput, NumberInput, Select,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { modals } from '@mantine/modals';
@@ -17,18 +17,18 @@ import {
 import { SiteConnectionCard } from '@/components/settings/SiteConnectionCard';
 import { PurchaseHistoryList } from '@/components/settings/PurchaseHistoryList';
 import { AmazonConnectionModal } from '@/components/settings/AmazonConnectionModal';
-import { useSessionStore } from '@/stores/sessionStore';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { setSiteConnections, setAmazonSessionDetails } from '@/store/slices/sessionSlice';
 import { usePreferencesStore } from '@/stores/preferencesStore';
 import { useChatStore } from '@/stores/chatStore';
 import { MOCK_ORDERS, MOCK_PREFERENCES } from '@/lib/mocks/fixtures';
 import { useState } from 'react';
 
 export default function SettingsPage() {
-  const siteConns = useSessionStore((s) => s.siteConnections);
-  const setSiteConns = useSessionStore((s) => s.setSiteConnections);
-  const amazonSessionDetails = useSessionStore((s) => s.amazonSessionDetails);
-  const setAmazonSessionDetails = useSessionStore((s) => s.setAmazonSessionDetails);
-  
+  const dispatch = useAppDispatch();
+  const siteConns = useAppSelector((state) => state.session.siteConnections);
+  const amazonSessionDetails = useAppSelector((state) => state.session.amazonSessionDetails);
+
   const [amazonModalOpen, setAmazonModalOpen] = useState(false);
   const preferences = usePreferencesStore((s) => s.preferences);
   const setExplicit = usePreferencesStore((s) => s.setExplicit);
@@ -50,16 +50,16 @@ export default function SettingsPage() {
       notifications.show({ title: 'TODO', message: `Connect to ${site} — implement OAuth flow here.`, color: 'yellow' });
     }
   };
-  
+
   const handleDisconnect = (site: 'amazon' | 'walmart') => {
-    setSiteConns({ ...siteConns, [site]: 'disconnected' });
-    if (site === 'amazon') setAmazonSessionDetails(null);
+    dispatch(setSiteConnections({ ...siteConns, [site]: 'disconnected' }));
+    if (site === 'amazon') dispatch(setAmazonSessionDetails(null));
     notifications.show({ title: 'Disconnected', message: `${site} session removed.` });
   };
 
   const handleAmazonSuccess = (details: any) => {
-    setAmazonSessionDetails(details);
-    setSiteConns({ ...siteConns, amazon: 'connected' });
+    dispatch(setAmazonSessionDetails(details));
+    dispatch(setSiteConnections({ ...siteConns, amazon: 'connected' }));
     setAmazonModalOpen(false);
     notifications.show({ title: 'Amazon Connected', message: 'Your secure session is active.', color: 'green' });
   };
@@ -87,11 +87,13 @@ export default function SettingsPage() {
   return (
     <Box
       style={{
-        height: 'calc(100vh - 60px)',
-        overflowY: 'auto',
+        height: 'calc(100vh - 80px)',
+        display: 'flex',
+        flexDirection: 'column',
         padding: '24px',
         maxWidth: 720,
         margin: '0 auto',
+        overflow: 'hidden',
       }}
     >
       <Stack gap="sm" style={{ marginBottom: 24 }}>
@@ -104,9 +106,11 @@ export default function SettingsPage() {
       </Stack>
 
       <Tabs defaultValue="connections"
+        color="brand"
+        style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
         styles={{
-          tab: { color: 'var(--cl-text-secondary)', '&[data-active]': { color: 'var(--cl-brand)', borderBottomColor: 'var(--cl-brand)' } },
-          list: { borderBottomColor: 'var(--cl-border)' },
+          list: { borderBottomColor: 'var(--cl-border)', flexShrink: 0, marginBottom: 24 },
+          panel: { overflowY: 'auto', flex: 1, paddingBottom: 40, paddingRight: 8 }
         }}
       >
         <Tabs.List>
@@ -140,28 +144,26 @@ export default function SettingsPage() {
         </Tabs.Panel>
 
         {/* ── Preferences ── */}
-        <Tabs.Panel value="preferences" pt="md">
-          <Stack gap="xl">
+        <Tabs.Panel value="preferences" pt="lg">
+          <Stack gap={40}>
             {/* Explicit preferences */}
             <Box>
-              <Text fw={600} size="sm" style={{ color: 'var(--cl-text-primary)', marginBottom: 12 }}>Explicit Preferences</Text>
-              <Stack gap="md">
-                <MultiSelect
+              <Text fw={600} size="sm" style={{ color: 'var(--cl-text-primary)', marginBottom: 20 }}>Explicit Preferences</Text>
+              <Stack gap="lg">
+                <TagsInput
                   label="Preferred brands"
-                  placeholder="Add brands…"
+                  placeholder="Type and press Enter…"
                   data={exp.preferred_brands}
                   value={exp.preferred_brands}
                   onChange={(v) => setExplicit({ preferred_brands: v })}
-                  searchable
                   styles={{ input: { backgroundColor: 'var(--cl-surface)', borderColor: 'var(--cl-border)' } }}
                 />
-                <MultiSelect
+                <TagsInput
                   label="Avoided brands"
-                  placeholder="Brands to avoid…"
+                  placeholder="Type and press Enter…"
                   data={exp.avoided_brands}
                   value={exp.avoided_brands}
                   onChange={(v) => setExplicit({ avoided_brands: v })}
-                  searchable
                   styles={{ input: { backgroundColor: 'var(--cl-surface)', borderColor: 'var(--cl-border)' } }}
                 />
                 <NumberInput
@@ -220,8 +222,8 @@ export default function SettingsPage() {
 
             {/* Scoring weights */}
             <Box>
-              <Text fw={600} size="sm" style={{ color: 'var(--cl-text-primary)', marginBottom: 12 }}>Scoring Weights</Text>
-              <Stack gap="md">
+              <Text fw={600} size="sm" style={{ color: 'var(--cl-text-primary)', marginBottom: 20 }}>Scoring Weights</Text>
+              <Stack gap="xl">
                 {(['price', 'rating', 'delivery', 'pref_match'] as const).map((key) => (
                   <Box key={key}>
                     <Group justify="space-between" style={{ marginBottom: 4 }}>

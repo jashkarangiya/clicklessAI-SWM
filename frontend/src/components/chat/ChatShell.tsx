@@ -21,11 +21,12 @@ import {
 import { BrandLockup } from '@/components/branding/BrandLockup';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { ConnectionStatusBadge } from '@/components/common/ConnectionStatusBadge';
-import { useSessionStore } from '@/stores/sessionStore';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { logout } from '@/store/slices/sessionSlice';
 import { useChatStore } from '@/stores/chatStore';
 
 const NAV_LINKS = [
-  { href: '/app/chat',     label: 'Chat',     icon: <IconMessageCircle size={18} /> },
+  { href: '/app/chat', label: 'Chat', icon: <IconMessageCircle size={18} /> },
   { href: '/app/settings', label: 'Settings', icon: <IconSettings size={18} /> },
 ];
 
@@ -36,13 +37,13 @@ interface AppShellLayoutProps {
 export function AppShellLayout({ children }: AppShellLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const dispatch = useAppDispatch();
   const [navOpen, setNavOpen] = useState(false);
-  const user = useSessionStore((s) => s.user);
-  const logout = useSessionStore((s) => s.logout);
+  const user = useAppSelector((state) => state.session.user);
   const clearHistory = useChatStore((s) => s.clearHistory);
 
   const handleLogout = () => {
-    logout();
+    dispatch(logout());
     router.push('/login');
   };
 
@@ -57,7 +58,7 @@ export function AppShellLayout({ children }: AppShellLayoutProps) {
       navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: !navOpen } }}
       padding={0}
       styles={{
-        root:   { backgroundColor: 'var(--cl-bg)' },
+        root: { backgroundColor: 'var(--cl-bg)' },
         header: {
           backgroundColor: 'var(--cl-surface)',
           borderBottom: '1px solid var(--cl-border)',
@@ -95,27 +96,27 @@ export function AppShellLayout({ children }: AppShellLayoutProps) {
             {/* User Menu */}
             <Menu withArrow position="bottom-end" shadow="lg">
               <Menu.Target>
-                <Tooltip label={user?.name ?? 'Account'} withArrow>
-                  <ActionIcon
-                    variant="subtle"
-                    size="lg"
-                    aria-label="User menu"
-                    style={{
-                      border: '1px solid var(--cl-border)',
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--cl-surface)',
-                    }}
+                <ActionIcon
+                  variant="subtle"
+                  size="lg"
+                  aria-label="User menu"
+                  style={{
+                    border: '1px solid var(--cl-border)',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--cl-surface)',
+                  }}
+                >
+                  <Avatar
+                    size={28}
+                    radius="xl"
+                    color="brand"
+                    src={user?.image}
+                    imageProps={{ referrerPolicy: 'no-referrer' }}
+                    style={{ backgroundColor: 'var(--cl-brand-soft)', color: 'var(--cl-brand)' }}
                   >
-                    <Avatar
-                      size={28}
-                      radius="xl"
-                      color="brand"
-                      style={{ backgroundColor: 'var(--cl-brand-soft)', color: 'var(--cl-brand)' }}
-                    >
-                      {user?.name?.[0]?.toUpperCase() ?? 'U'}
-                    </Avatar>
-                  </ActionIcon>
-                </Tooltip>
+                    {!user?.image && (user?.name?.[0]?.toUpperCase() ?? 'U')}
+                  </Avatar>
+                </ActionIcon>
               </Menu.Target>
 
               <Menu.Dropdown
@@ -125,8 +126,13 @@ export function AppShellLayout({ children }: AppShellLayoutProps) {
                   minWidth: 200,
                 }}
               >
-                <Menu.Label style={{ color: 'var(--cl-text-muted)' }}>
-                  {user?.email ?? 'Account'}
+                <Menu.Label>
+                  <Text size="sm" fw={600} style={{ color: 'var(--cl-text-primary)', marginBottom: 2 }}>
+                    {user?.name ?? 'User'}
+                  </Text>
+                  <Text size="xs" style={{ color: 'var(--cl-text-muted)' }}>
+                    {user?.email ?? 'Account'}
+                  </Text>
                 </Menu.Label>
                 <Menu.Item leftSection={<IconUser size={14} />} onClick={() => router.push('/app/settings')}
                   style={{ color: 'var(--cl-text-primary)' }}>
@@ -186,20 +192,28 @@ export function AppShellLayout({ children }: AppShellLayoutProps) {
               paddingTop: 12,
             }}
           >
-            <Group gap="sm">
+            <Group gap="sm" wrap="nowrap">
               <Avatar
                 size={32} radius="xl"
-                style={{ backgroundColor: 'var(--cl-brand-soft)', color: 'var(--cl-brand)', fontSize: 14, fontWeight: 600 }}
+                src={user?.image}
+                imageProps={{ referrerPolicy: 'no-referrer' }}
+                style={{ backgroundColor: 'var(--cl-brand-soft)', color: 'var(--cl-brand)', fontSize: 14, fontWeight: 600, flexShrink: 0 }}
               >
-                {user?.name?.[0]?.toUpperCase() ?? 'U'}
+                {!user?.image && (user?.name?.[0]?.toUpperCase() ?? 'U')}
               </Avatar>
-              <Box style={{ overflow: 'hidden' }}>
-                <Text size="sm" fw={600} style={{ color: 'var(--cl-text-primary)', lineHeight: 1.2 }}>
-                  {user?.name ?? 'User'}
-                </Text>
-                <Text size="xs" style={{ color: 'var(--cl-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {user?.email}
-                </Text>
+              <Box style={{ overflow: 'hidden', flex: 1 }}>
+                <Tooltip label={user?.name} position="top-start" openDelay={500}>
+                  <Text size="sm" fw={600} style={{ color: 'var(--cl-text-primary)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {user?.name ?? 'User'}
+                  </Text>
+                </Tooltip>
+                {user?.email && (
+                  <Tooltip label={user?.email} position="top-start" openDelay={500}>
+                    <Text size="xs" style={{ color: 'var(--cl-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user.email}
+                    </Text>
+                  </Tooltip>
+                )}
               </Box>
             </Group>
           </Box>
@@ -216,16 +230,19 @@ interface NavItemProps {
 }
 
 function NavItem({ label, icon, active, onClick }: NavItemProps) {
+  const [hovered, setHovered] = useState(false);
   return (
     <UnstyledButton
       onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 10,
         padding: '8px 12px', borderRadius: 8,
-        backgroundColor: active ? 'var(--cl-brand-soft)' : 'transparent',
-        border: active ? '1px solid var(--cl-border-strong)' : '1px solid transparent',
-        color: active ? 'var(--cl-brand)' : 'var(--cl-text-secondary)',
-        fontWeight: active ? 600 : 400,
+        backgroundColor: active ? 'var(--cl-surface)' : hovered ? 'var(--cl-surface-alt)' : 'transparent',
+        border: active ? '1px solid var(--cl-border-strong)' : hovered ? '1px solid var(--cl-border)' : '1px solid transparent',
+        color: active ? 'var(--cl-text-primary)' : hovered ? 'var(--cl-text-primary)' : 'var(--cl-text-secondary)',
+        fontWeight: active ? 600 : 500,
         transition: 'all 0.15s ease',
         cursor: 'pointer',
       }}

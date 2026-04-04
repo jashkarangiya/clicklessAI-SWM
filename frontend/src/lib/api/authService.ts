@@ -27,6 +27,7 @@ export interface AuthResponse {
         id: string;
         email: string;
         name: string;
+        image?: string;
     };
 }
 
@@ -51,12 +52,29 @@ async function mockSignup(req: SignupRequest): Promise<AuthResponse> {
 }
 
 async function mockGoogleLogin(token: string): Promise<AuthResponse> {
-    await delay(800);
     if (!token) throw new Error('Invalid Google credential');
-    return {
-        token: 'mock-google-token-' + Math.random().toString(36).slice(2),
-        user: { id: 'google-user-001', email: 'test.google@example.com', name: 'Google User' },
-    };
+
+    try {
+        const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!userInfoRes.ok) throw new Error('Failed to fetch user info from Google');
+
+        const userInfo = await userInfoRes.json();
+
+        return {
+            token: 'mock-google-token-' + Math.random().toString(36).slice(2),
+            user: {
+                id: userInfo.sub || 'google-user-001',
+                email: userInfo.email,
+                name: userInfo.name,
+                image: userInfo.picture
+            },
+        };
+    } catch (e) {
+        throw new Error('Google Login failed: Invalid token');
+    }
 }
 
 // ── Real implementations (TODO) ────────────────────────────────────────────

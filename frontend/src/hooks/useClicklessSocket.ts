@@ -16,7 +16,8 @@ import { SocketClient, type ConnectionState } from '@/lib/ws/SocketClient';
 import { adaptIncomingMessage } from '@/lib/adapters/messageAdapter';
 import type { WebSocketOutgoingEvent } from '@/contracts/websocket';
 import { useChatStore } from '@/stores/chatStore';
-import { useSessionStore } from '@/stores/sessionStore';
+import { useAppDispatch } from '@/store/hooks';
+import { setWsState, setSiteConnections } from '@/store/slices/sessionSlice';
 import { MockSocketTransport } from '@/lib/mocks/mockSocketTransport';
 
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
@@ -24,8 +25,7 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000/ws';
 
 export function useClicklessSocket() {
     const clientRef = useRef<SocketClient | MockSocketTransport | null>(null);
-    const setWsState = useSessionStore((s) => s.setWsState);
-    const setSiteConns = useSessionStore((s) => s.setSiteConnections);
+    const dispatch = useAppDispatch();
     const addMessage = useChatStore((s) => s.addMessage);
     const setTyping = useChatStore((s) => s.setTyping);
     const setStatus = useChatStore((s) => s.setStatus);
@@ -35,10 +35,10 @@ export function useClicklessSocket() {
         try {
             const parsed = JSON.parse(raw) as { event?: string; amazon?: string; walmart?: string };
             if (parsed.event === 'session_state') {
-                setSiteConns({
+                dispatch(setSiteConnections({
                     amazon: (parsed.amazon as 'connected' | 'disconnected' | 'expired') ?? 'disconnected',
                     walmart: (parsed.walmart as 'connected' | 'disconnected' | 'expired') ?? 'disconnected',
-                });
+                }));
                 return;
             }
             if (parsed.event === 'status_update') {
@@ -52,11 +52,11 @@ export function useClicklessSocket() {
 
         const msg = adaptIncomingMessage(raw);
         if (msg) addMessage(msg);
-    }, [addMessage, setSiteConns, setTyping, setStatus]);
+    }, [addMessage, dispatch, setTyping, setStatus]);
 
     const handleStateChange = useCallback((state: ConnectionState) => {
-        setWsState(state);
-    }, [setWsState]);
+        dispatch(setWsState(state));
+    }, [dispatch]);
 
     const connect = useCallback(() => {
         if (clientRef.current) return;
