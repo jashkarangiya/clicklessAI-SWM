@@ -4,17 +4,17 @@
  */
 import { Badge, Tooltip } from '@mantine/core';
 import { IconWifi, IconWifiOff, IconRefresh } from '@tabler/icons-react';
-import { useSessionStore } from '@/stores/sessionStore';
+import { useAppSelector } from '@/store/hooks';
 
 export function ConnectionStatusBadge() {
-  const wsState = useSessionStore((s) => s.wsState);
+  const wsState = useAppSelector((state) => state.session.wsState);
 
   const config = {
-    connected:    { label: 'Connected',    color: 'var(--cl-success)',   icon: <IconWifi size={12} />,    tooltip: 'Real-time connection active' },
-    connecting:   { label: 'Connecting',   color: 'var(--cl-warning)',   icon: <IconRefresh size={12} />, tooltip: 'Establishing connection...' },
-    reconnecting: { label: 'Reconnecting', color: 'var(--cl-warning)',   icon: <IconRefresh size={12} />, tooltip: 'Reconnecting to server...' },
-    idle:         { label: 'Offline',      color: 'var(--cl-text-muted)', icon: <IconWifiOff size={12} />, tooltip: 'Not connected' },
-    closed:       { label: 'Disconnected', color: 'var(--cl-error)',     icon: <IconWifiOff size={12} />, tooltip: 'Connection closed' },
+    connected: { label: 'Connected', color: 'var(--cl-success)', icon: <IconWifi size={12} />, tooltip: 'Real-time connection active' },
+    connecting: { label: 'Connecting', color: 'var(--cl-warning)', icon: <IconRefresh size={12} />, tooltip: 'Establishing connection...' },
+    reconnecting: { label: 'Reconnecting', color: 'var(--cl-warning)', icon: <IconRefresh size={12} />, tooltip: 'Reconnecting to server...' },
+    idle: { label: 'Offline', color: 'var(--cl-text-muted)', icon: <IconWifiOff size={12} />, tooltip: 'Not connected' },
+    closed: { label: 'Disconnected', color: 'var(--cl-error)', icon: <IconWifiOff size={12} />, tooltip: 'Connection closed' },
   }[wsState];
 
   return (

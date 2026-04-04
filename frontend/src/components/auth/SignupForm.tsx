@@ -12,35 +12,36 @@ import { useForm } from '@mantine/form';
 import { IconAlertCircle, IconBrandGoogle } from '@tabler/icons-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { authService } from '@/lib/api/authService';
-import { useSessionStore } from '@/stores/sessionStore';
+import { useAppDispatch } from '@/store/hooks';
+import { setUser } from '@/store/slices/sessionSlice';
 
 function getPasswordStrength(password: string): { score: number; label: string; color: string } {
   let score = 0;
-  if (password.length >= 8)                           score += 25;
-  if (password.length >= 12)                          score += 10;
-  if (/[A-Z]/.test(password))                        score += 20;
-  if (/[0-9]/.test(password))                        score += 20;
-  if (/[^A-Za-z0-9]/.test(password))                 score += 25;
+  if (password.length >= 8) score += 25;
+  if (password.length >= 12) score += 10;
+  if (/[A-Z]/.test(password)) score += 20;
+  if (/[0-9]/.test(password)) score += 20;
+  if (/[^A-Za-z0-9]/.test(password)) score += 25;
 
-  if (score < 40)  return { score, label: 'Weak',      color: 'var(--cl-error)' };
-  if (score < 65)  return { score, label: 'Fair',      color: 'var(--cl-warning)' };
-  if (score < 85)  return { score, label: 'Good',      color: 'var(--cl-info)' };
-  return           { score, label: 'Strong',    color: 'var(--cl-success)' };
+  if (score < 40) return { score, label: 'Weak', color: 'var(--cl-error)' };
+  if (score < 65) return { score, label: 'Fair', color: 'var(--cl-warning)' };
+  if (score < 85) return { score, label: 'Good', color: 'var(--cl-info)' };
+  return { score, label: 'Strong', color: 'var(--cl-success)' };
 }
 
 export function SignupForm() {
   const router = useRouter();
-  const setUser = useSessionStore((s) => s.setUser);
+  const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [error, setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm({
     initialValues: { name: '', email: '', password: '', confirmPassword: '' },
     validate: {
-      name:            (v) => (v.trim().length >= 2 ? null : 'Name must be at least 2 characters'),
-      email:           (v) => (/^\S+@\S+$/.test(v) ? null : 'Enter a valid email address'),
-      password:        (v) => (v.length >= 8 ? null : 'Password must be at least 8 characters'),
+      name: (v) => (v.trim().length >= 2 ? null : 'Name must be at least 2 characters'),
+      email: (v) => (/^\S+@\S+$/.test(v) ? null : 'Enter a valid email address'),
+      password: (v) => (v.length >= 8 ? null : 'Password must be at least 8 characters'),
       confirmPassword: (v, values) => (v === values.password ? null : 'Passwords do not match'),
     },
   });
@@ -52,7 +53,7 @@ export function SignupForm() {
     setError(null);
     try {
       const res = await authService.signup({ name: values.name, email: values.email, password: values.password });
-      setUser(res.user, res.token);
+      dispatch(setUser({ user: res.user, token: res.token }));
       router.push('/app/chat');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Signup failed. Please try again.');
@@ -67,7 +68,7 @@ export function SignupForm() {
       setError(null);
       try {
         const res = await authService.googleLogin(tokenResponse.access_token);
-        setUser(res.user, res.token);
+        dispatch(setUser({ user: res.user, token: res.token }));
         router.push('/app/chat');
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Google Signup failed.');

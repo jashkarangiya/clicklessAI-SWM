@@ -12,11 +12,12 @@ import { useForm } from '@mantine/form';
 import { IconAlertCircle, IconBrandGoogle } from '@tabler/icons-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { authService } from '@/lib/api/authService';
-import { useSessionStore } from '@/stores/sessionStore';
+import { useAppDispatch } from '@/store/hooks';
+import { setUser } from '@/store/slices/sessionSlice';
 
 export function LoginForm() {
   const router = useRouter();
-  const setUser = useSessionStore((s) => s.setUser);
+  const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export function LoginForm() {
   const form = useForm({
     initialValues: { email: '', password: '', rememberMe: false },
     validate: {
-      email:    (v) => (/^\S+@\S+$/.test(v) ? null : 'Enter a valid email address'),
+      email: (v) => (/^\S+@\S+$/.test(v) ? null : 'Enter a valid email address'),
       password: (v) => (v.length >= 6 ? null : 'Password must be at least 6 characters'),
     },
   });
@@ -34,7 +35,7 @@ export function LoginForm() {
     setError(null);
     try {
       const res = await authService.login(values);
-      setUser(res.user, res.token);
+      dispatch(setUser({ user: res.user, token: res.token }));
       router.push('/app/chat');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Login failed. Please try again.');
@@ -49,7 +50,7 @@ export function LoginForm() {
       setError(null);
       try {
         const res = await authService.googleLogin(tokenResponse.access_token);
-        setUser(res.user, res.token);
+        dispatch(setUser({ user: res.user, token: res.token }));
         router.push('/app/chat');
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Google Login failed.');

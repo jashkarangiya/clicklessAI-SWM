@@ -13,6 +13,7 @@ import { Notifications } from '@mantine/notifications';
 import { ModalsProvider } from '@mantine/modals';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { mantineTheme } from '@/theme/mantineTheme';
+import { ReduxProvider } from '@/store/Providers';
 
 // Import Mantine core CSS
 import '@mantine/core/styles.css';
@@ -26,14 +27,16 @@ const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'placeholde
 
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <MantineProvider theme={mantineTheme} defaultColorScheme="dark">
-        <Notifications position="top-right" zIndex={9999} />
-        <ModalsProvider>
-          {children}
-        </ModalsProvider>
-      </MantineProvider>
-    </GoogleOAuthProvider>
+    <ReduxProvider>
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <MantineProvider theme={mantineTheme} defaultColorScheme="dark">
+          <Notifications position="top-right" zIndex={9999} />
+          <ModalsProvider>
+            {children}
+          </ModalsProvider>
+        </MantineProvider>
+      </GoogleOAuthProvider>
+    </ReduxProvider>
   );
 }
 
