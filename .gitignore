@@ -1,0 +1,60 @@
+# PDFs
+*.pdf
+
+# Environment & secrets
+.env
+*.env
+.env.*
+
+# Claude Code
+.claude/
+
+# Build / dist artifacts
+.dist/
+dist/
+build/
+*.egg-info/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Test & coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (frontend)
+node_modules/
+.next/
+.nuxt/
+
+# Logs
+*.log
+logs/
+
+# Playwright
+playwright-report/
+test-results/
