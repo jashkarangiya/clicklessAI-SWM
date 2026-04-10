@@ -1,0 +1,62 @@
+# Walmart CSS/XPath Selector Registry
+# Used by scrapers to target DOM elements on Walmart pages
+# Update these when Walmart changes their page structure
+
+search_results:
+  # Main search results container
+  container: "div[data-testid='item-stack'] div[data-item-id]"
+  container_alt: "section[data-testid='item-stack'] div.mb1"
+  # Individual product fields
+  title: "span[data-automation-id='product-title']"
+  title_alt: "a.product-title-link span"
+  title_link: "a[link-identifier='linkIdentifier']"
+  title_link_alt: "a.product-title-link"
+  price_current: "div[data-automation-id='product-price'] span.f2"
+  price_current_alt: "span[itemprop='price']"
+  price_dollars: "span.f1"
+  price_cents: "span.f6"
+  price_original: "div.gray.strike"
+  price_rollback: "span.visuallyhidden"
+  rating: "span.w_DE"
+  rating_alt: "span.stars-container"
+  review_count: "span.sans-serif.gray"
+  image: "img[data-testid='productTileImage']"
+  image_alt: "img.absolute"
+  delivery: "span[data-automation-id='fulfillment-badge']"
+  walmart_plus: "i.ld-WalmartPlus"
+  sponsored_label: "span.lh-copy.gray"
+  out_of_stock: "span.dark-gray"
+
+product_detail:
+  # Product detail page selectors
+  title: "h1[itemprop='name']"
+  title_alt: "#main-title"
+  price: "span[itemprop='price']"
+  price_alt: "span.inline-flex span.f1"
+  rating: "span.rating-number"
+  review_count: "a.f7"
+  description: "div.dangerous-html"
+  specifications: "div.specification-table tr"
+  images: "div.carousel img"
+  main_image: "img[data-testid='hero-image']"
+  availability: "div[data-testid='add-to-cart-section']"
+  brand: "a.b.black"
+  seller: "div.seller-name a"
+
+checkout:
+  # Checkout flow selectors
+  add_to_cart: "button[data-tl-id='ProductPrimaryCTA-normal']"
+  add_to_cart_alt: "button#add-to-cart-btn"
+  cart_confirmation: "div[data-testid='cart-confirmation']"
+  view_cart: "a[data-testid='view-cart']"
+  proceed_to_checkout: "button[data-tl-id='CartCheckoutButton']"
+  place_order: "button[data-tl-id='PAP-PlaceOrder']"
+  order_confirmation: "div.order-confirmation"
+  order_id: "span.order-number"
+  delivery_date: "span.delivery-date"
+  checkout_address: "div.shipping-address"
+  checkout_payment: "div.payment-method"
+
+pagination:
+  next_page: "a[data-testid='NextPage']"
+  next_page_alt: "a.paginator-btn-next"
