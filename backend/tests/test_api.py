@@ -127,6 +127,44 @@ class TestUsers:
         assert r.status_code == 200
         assert r.json()["price"] == 0.5
 
+    async def test_create_duplicate_email(self, test_client: AsyncClient):
+        email = _unique_email("dup")
+        await self._create(test_client, email=email)
+        r = await test_client.post("/api/users/", json={"email": email, "display_name": "Dup"})
+        assert r.status_code in (409, 422, 500)
+
+    async def test_update_user_not_found(self, test_client: AsyncClient):
+        r = await test_client.patch("/api/users/nonexistent-xyz", json={"display_name": "X"})
+        assert r.status_code == 404
+
+    async def test_delete_user_not_found(self, test_client: AsyncClient):
+        r = await test_client.delete("/api/users/nonexistent-xyz")
+        assert r.status_code == 404
+
+    async def test_preferences_not_found(self, test_client: AsyncClient):
+        r = await test_client.get("/api/users/nonexistent-xyz/preferences")
+        assert r.status_code == 404
+
+    async def test_add_explicit_preference_missing_key(self, test_client: AsyncClient):
+        created = await self._create(test_client)
+        r = await test_client.post(
+            f"/api/users/{created['user_id']}/preferences/explicit",
+            json={"value": "Sony"},
+        )
+        assert r.status_code == 422
+
+    async def test_add_implicit_preference_missing_key(self, test_client: AsyncClient):
+        created = await self._create(test_client)
+        r = await test_client.post(
+            f"/api/users/{created['user_id']}/preferences/implicit",
+            json={"value": "electronics"},
+        )
+        assert r.status_code == 422
+
+    async def test_weights_not_found(self, test_client: AsyncClient):
+        r = await test_client.get("/api/users/nonexistent-xyz/preferences/weights")
+        assert r.status_code == 404
+
 
 # ── Sessions ──────────────────────────────────────────────────────────────────
 
@@ -175,6 +213,35 @@ class TestSessions:
         r = await test_client.get(f"/api/sessions/{uid}")
         assert r.status_code == 200
         assert "amazon" in r.json()
+
+    async def test_get_session_not_found(self, test_client: AsyncClient):
+        uid = await self._user(test_client)
+        r = await test_client.get(f"/api/sessions/{uid}/amazon")
+        assert r.status_code == 404
+
+    async def test_delete_session_not_found(self, test_client: AsyncClient):
+        uid = await self._user(test_client)
+        r = await test_client.delete(f"/api/sessions/{uid}/amazon")
+        assert r.status_code == 404
+
+    async def test_store_session_user_not_found(self, test_client: AsyncClient):
+        r = await test_client.post(
+            "/api/sessions/nonexistent-user/amazon",
+            json={"encrypted_state": "enc_state"},
+        )
+        assert r.status_code == 404
+
+    async def test_list_sessions_user_not_found(self, test_client: AsyncClient):
+        r = await test_client.get("/api/sessions/nonexistent-user")
+        assert r.status_code == 404
+
+    async def test_store_session_overwrites(self, test_client: AsyncClient):
+        uid = await self._user(test_client)
+        await test_client.post(f"/api/sessions/{uid}/amazon", json={"encrypted_state": "first"})
+        await test_client.post(f"/api/sessions/{uid}/amazon", json={"encrypted_state": "second"})
+        r = await test_client.get(f"/api/sessions/{uid}/amazon")
+        assert r.status_code == 200
+        assert r.json()["encrypted_state"] == "second"
 
 
 # ── Orders ────────────────────────────────────────────────────────────────────
@@ -227,6 +294,30 @@ class TestOrders:
         assert r.status_code == 200
         assert len(r.json()) >= 1
 
+    async def test_get_user_orders_empty(self, test_client):
+        uid = await self._user(test_client)
+        r = await test_client.get(f"/api/orders/user/{uid}")
+        assert r.status_code == 200
+        assert r.json() == []
+
+    async def test_update_order_not_found(self, test_client):
+        r = await test_client.patch("/api/orders/nonexistent-order", json={"status": "shipped"})
+        assert r.status_code == 404
+
+    async def test_update_order_site_order_id(self, test_client, sample_product, sample_confirmation):
+        uid = await self._user(test_client)
+        order = await self._create_order(test_client, uid, sample_product, sample_confirmation)
+        r = await test_client.patch(
+            f"/api/orders/{order['order_id']}",
+            json={"site_order_id": "114-9876543-2109876"},
+        )
+        assert r.status_code == 200
+        assert r.json()["site_order_id"] == "114-9876543-2109876"
+
+    async def test_create_order_missing_fields(self, test_client):
+        r = await test_client.post("/api/orders/", json={"user_id": "uid"})
+        assert r.status_code == 422
+
 
 # ── Cache ─────────────────────────────────────────────────────────────────────
 
@@ -254,6 +345,41 @@ class TestCache:
             f"/api/cache/products?query=totally_unknown_{uuid.uuid4().hex}"
         )
         assert r.status_code == 404
+
+    async def test_cache_multiple_products(self, test_client, sample_product):
+        import copy
+        p2 = copy.deepcopy(sample_product)
+        p2["product_id"] = "prod_test_002"
+        p2["source_product_id"] = "B002TEST"
+        query = f"headphones multi {uuid.uuid4().hex[:6]}"
+        r = await test_client.post(
+            "/api/cache/products",
+            json={"query": query, "products": [sample_product, p2], "ttl": 60},
+        )
+        assert r.status_code == 200
+        assert r.json()["cached"] == 2
+
+    async def test_cache_overwrite(self, test_client, sample_product):
+        import copy
+        query = f"overwrite test {uuid.uuid4().hex[:6]}"
+        await test_client.post(
+            "/api/cache/products",
+            json={"query": query, "products": [sample_product], "ttl": 60},
+        )
+        p2 = copy.deepcopy(sample_product)
+        p2["product_id"] = "prod_new_001"
+        p2["source_product_id"] = "B003NEW"
+        await test_client.post(
+            "/api/cache/products",
+            json={"query": query, "products": [p2], "ttl": 60},
+        )
+        r = await test_client.get(f"/api/cache/products?query={query}")
+        assert r.status_code == 200
+        assert r.json()[0]["product_id"] == "prod_new_001"
+
+    async def test_cache_missing_query_param(self, test_client):
+        r = await test_client.get("/api/cache/products")
+        assert r.status_code == 422
 
 
 # ── Conversations ─────────────────────────────────────────────────────────────
@@ -300,3 +426,29 @@ class TestConversations:
     async def test_get_conversation_not_found(self, test_client):
         r = await test_client.get(f"/api/conversations/nonexistent-{uuid.uuid4().hex}")
         assert r.status_code == 404
+
+    async def test_delete_conversation_not_found(self, test_client):
+        r = await test_client.delete(f"/api/conversations/nonexistent-{uuid.uuid4().hex}")
+        assert r.status_code == 404
+
+    async def test_create_conversation_session_id_mismatch(self, test_client):
+        sid = f"sess_{uuid.uuid4().hex[:8]}"
+        envelope = self._envelope("user_mismatch", sid)
+        envelope["session_id"] = "different_session_id"
+        r = await test_client.post(f"/api/conversations/{sid}", json=envelope)
+        assert r.status_code == 422
+
+    async def test_conversation_overwrite(self, test_client):
+        sid = f"sess_{uuid.uuid4().hex[:8]}"
+        await test_client.post(f"/api/conversations/{sid}", json=self._envelope("user_a", sid))
+        updated = self._envelope("user_a", sid)
+        updated["query"] = "updated query"
+        updated["turn_id"] = "turn_002"
+        r = await test_client.post(f"/api/conversations/{sid}", json=updated)
+        assert r.status_code == 201
+        assert r.json()["query"] == "updated query"
+
+    async def test_create_conversation_missing_fields(self, test_client):
+        sid = f"sess_{uuid.uuid4().hex[:8]}"
+        r = await test_client.post(f"/api/conversations/{sid}", json={"session_id": sid})
+        assert r.status_code == 422

@@ -106,3 +106,85 @@ class TestWebSocket:
                     ws.send_json(msg)
                     response = ws.receive_json()
                     assert response["turn_id"] == turn_id
+
+    def test_websocket_reconnect_replays_existing_state(self, sync_client: TestClient):
+        """On reconnect, server immediately sends the last persisted envelope."""
+        session_id = "ws_sess_005"
+        existing = _mock_envelope(session_id, turn_id="turn_007")
+
+        with (
+            patch("app.ws.handler.get_state", new_callable=AsyncMock, return_value=existing),
+            patch("app.ws.handler.save_state", new_callable=AsyncMock, side_effect=lambda e: e),
+        ):
+            with sync_client.websocket_connect(f"/ws/chat/{session_id}") as ws:
+                replayed = ws.receive_json()
+                assert replayed["session_id"] == session_id
+                assert replayed["turn_id"] == "turn_007"
+
+    def test_websocket_invalid_envelope_fields(self, sync_client: TestClient):
+        """Valid JSON but missing required StateEnvelope fields returns an error."""
+        with (
+            patch("app.ws.handler.get_state", new_callable=AsyncMock, return_value=None),
+            patch("app.ws.handler.save_state", new_callable=AsyncMock, side_effect=lambda e: e),
+        ):
+            with sync_client.websocket_connect("/ws/chat/ws_sess_006") as ws:
+                ws.send_json({"not_a_field": "garbage"})
+                response = ws.receive_json()
+                assert "error" in response
+
+    def test_websocket_status_field_preserved(self, sync_client: TestClient):
+        """The status field sent by the client is preserved in the echoed response."""
+        session_id = "ws_sess_007"
+
+        def _echo(envelope: StateEnvelope) -> StateEnvelope:
+            return envelope
+
+        with (
+            patch("app.ws.handler.get_state", new_callable=AsyncMock, return_value=None),
+            patch("app.ws.handler.save_state", new_callable=AsyncMock, side_effect=_echo),
+        ):
+            msg = {
+                "session_id": session_id,
+                "user_id": "user_ws_003",
+                "turn_id": "turn_001",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "status": "needs_clarification",
+                "query": "headphones",
+                "missing_fields": ["budget"],
+                "clarification": "What is your budget?",
+            }
+            with sync_client.websocket_connect(f"/ws/chat/{session_id}") as ws:
+                ws.send_json(msg)
+                response = ws.receive_json()
+                assert response["status"] == "needs_clarification"
+                assert response["missing_fields"] == ["budget"]
+
+    def test_websocket_different_sessions_are_isolated(self, sync_client: TestClient):
+        """Two concurrent sessions do not interfere with each other."""
+        sid_a, sid_b = "ws_sess_008", "ws_sess_009"
+
+        def _echo(envelope: StateEnvelope) -> StateEnvelope:
+            return envelope
+
+        with (
+            patch("app.ws.handler.get_state", new_callable=AsyncMock, return_value=None),
+            patch("app.ws.handler.save_state", new_callable=AsyncMock, side_effect=_echo),
+        ):
+            msg_a = {
+                "session_id": sid_a, "user_id": "user_a", "turn_id": "t1",
+                "timestamp": datetime.now(timezone.utc).isoformat(), "status": "ready",
+            }
+            msg_b = {
+                "session_id": sid_b, "user_id": "user_b", "turn_id": "t1",
+                "timestamp": datetime.now(timezone.utc).isoformat(), "status": "executing",
+            }
+            with sync_client.websocket_connect(f"/ws/chat/{sid_a}") as ws_a:
+                with sync_client.websocket_connect(f"/ws/chat/{sid_b}") as ws_b:
+                    ws_a.send_json(msg_a)
+                    ws_b.send_json(msg_b)
+                    resp_a = ws_a.receive_json()
+                    resp_b = ws_b.receive_json()
+                    assert resp_a["session_id"] == sid_a
+                    assert resp_b["session_id"] == sid_b
+                    assert resp_a["status"] == "ready"
+                    assert resp_b["status"] == "executing"
