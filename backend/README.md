@@ -58,6 +58,11 @@ uvicorn app.main:app --reload
 API is available at `http://localhost:8000`.
 Interactive docs: `http://localhost:8000/docs`
 
+Once running, open:
+
+- **`http://localhost:8000/docs`** — Swagger UI (interactive, try out requests)
+- **`http://localhost:8000/redoc`** — ReDoc (read-only, cleaner layout)
+
 ---
 
 ## Running with Docker Compose (full stack)
