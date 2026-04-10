@@ -1,0 +1,116 @@
+[
+  {
+    "user_id": "user-price-sensitive",
+    "email": "alex@example.com",
+    "display_name": "Alex",
+    "preferences": {
+      "explicit": {
+        "budget_default": "under_50",
+        "preferred_brands": [],
+        "avoided_brands": [],
+        "preferred_sites": ["amazon"],
+        "delivery_priority": "standard",
+        "eco_friendly": false,
+        "color_preferences": {}
+      },
+      "implicit": {
+        "avg_purchase_price": 35.50,
+        "price_sensitivity": 0.90,
+        "rating_threshold": 4.0,
+        "review_count_threshold": 500,
+        "categories_browsed": ["headphones", "accessories"],
+        "sort_tendency": "price_low_to_high",
+        "decision_speed": "fast",
+        "comparison_depth": "shallow"
+      },
+      "weights": {
+        "price": 0.50,
+        "rating": 0.20,
+        "delivery": 0.15,
+        "preference_match": 0.15
+      }
+    },
+    "purchase_history": [],
+    "rejected_products": []
+  },
+  {
+    "user_id": "user-brand-loyal",
+    "email": "morgan@example.com",
+    "display_name": "Morgan",
+    "preferences": {
+      "explicit": {
+        "budget_default": "100_200",
+        "preferred_brands": ["Sony", "Apple", "Bose"],
+        "avoided_brands": ["Skullcandy"],
+        "preferred_sites": ["amazon"],
+        "delivery_priority": "standard",
+        "eco_friendly": false,
+        "color_preferences": {"electronics": "black"}
+      },
+      "implicit": {
+        "avg_purchase_price": 189.99,
+        "price_sensitivity": 0.40,
+        "rating_threshold": 4.3,
+        "review_count_threshold": 100,
+        "categories_browsed": ["headphones", "electronics", "audio"],
+        "sort_tendency": "rating_high_to_low",
+        "decision_speed": "moderate",
+        "comparison_depth": "detailed"
+      },
+      "weights": {
+        "price": 0.20,
+        "rating": 0.30,
+        "delivery": 0.15,
+        "preference_match": 0.35
+      }
+    },
+    "purchase_history": [
+      {
+        "order_id": "114-1234567-8901234",
+        "product": "Sony WH-1000XM4",
+        "category": "headphones",
+        "price": 199.99,
+        "site": "amazon",
+        "date": "2025-11-10",
+        "satisfaction": "positive"
+      }
+    ],
+    "rejected_products": [
+      {"product": "Skullcandy Crusher Evo", "reason": "brand_dislike", "price_at_rejection": 79.99, "date": "2026-01-15"}
+    ]
+  },
+  {
+    "user_id": "user-speed-focused",
+    "email": "riley@example.com",
+    "display_name": "Riley",
+    "preferences": {
+      "explicit": {
+        "budget_default": "mid_range",
+        "preferred_brands": [],
+        "avoided_brands": [],
+        "preferred_sites": ["amazon"],
+        "delivery_priority": "express",
+        "eco_friendly": false,
+        "color_preferences": {}
+      },
+      "implicit": {
+        "avg_purchase_price": 89.00,
+        "price_sensitivity": 0.50,
+        "rating_threshold": 4.0,
+        "review_count_threshold": 100,
+        "categories_browsed": ["electronics", "headphones"],
+        "sort_tendency": "delivery_fastest",
+        "decision_speed": "fast",
+        "comparison_depth": "shallow"
+      },
+      "weights": {
+        "price": 0.20,
+        "rating": 0.20,
+        "delivery": 0.40,
+        "preference_match": 0.20
+      }
+    },
+    "purchase_history": [],
+    "rejected_products": []
+  }
+]
