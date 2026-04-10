@@ -1,0 +1,1044 @@
+openapi: 3.0.3
+info:
+  title: ClickLess AI
+  description: Human-in-the-loop conversational web automation platform
+  version: 0.1.0
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: system
+    description: Health and status endpoints
+  - name: users
+    description: User management and preferences
+  - name: sessions
+    description: Encrypted auth session storage per site
+  - name: orders
+    description: Order creation and tracking
+  - name: cache
+    description: Product search result caching
+  - name: conversations
+    description: Conversation state management
+  - name: websocket
+    description: Real-time chat over WebSocket
+
+paths:
+  # ── System ──────────────────────────────────────────────────────────────────
+  /health:
+    get:
+      tags: [system]
+      summary: Health check
+      operationId: health
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /version:
+    get:
+      tags: [system]
+      summary: Application version
+      operationId: version
+      responses:
+        "200":
+          description: Current app version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "0.1.0"
+
+  /status:
+    get:
+      tags: [system]
+      summary: Status with environment
+      operationId: status
+      responses:
+        "200":
+          description: Status and current environment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  env:
+                    type: string
+                    example: development
+
+  # ── Users ────────────────────────────────────────────────────────────────────
+  /api/users/:
+    post:
+      tags: [users]
+      summary: Create a user
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDocument"
+
+  /api/users/{user_id}:
+    get:
+      tags: [users]
+      summary: Get a user by ID
+      operationId: getUser
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDocument"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      tags: [users]
+      summary: Update a user
+      operationId: updateUser
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDocument"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [users]
+      summary: Delete a user
+      operationId: deleteUser
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "204":
+          description: User deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/users/{user_id}/preferences:
+    get:
+      tags: [users]
+      summary: Get user preferences
+      operationId: getPreferences
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreferenceObject"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      tags: [users]
+      summary: Update user preferences
+      operationId: updatePreferences
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreferenceObject"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreferenceObject"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/users/{user_id}/preferences/explicit:
+    post:
+      tags: [users]
+      summary: Add an explicit preference
+      operationId: addExplicitPreference
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreferenceKeyValue"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreferenceObject"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /api/users/{user_id}/preferences/implicit:
+    post:
+      tags: [users]
+      summary: Add an implicit preference
+      operationId: addImplicitPreference
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreferenceKeyValue"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreferenceObject"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /api/users/{user_id}/preferences/weights:
+    get:
+      tags: [users]
+      summary: Get preference weights
+      operationId: getPreferenceWeights
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: Preference weights
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreferenceWeights"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      tags: [users]
+      summary: Update preference weights
+      operationId: updatePreferenceWeights
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreferenceWeights"
+      responses:
+        "200":
+          description: Updated weights
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreferenceWeights"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Sessions ──────────────────────────────────────────────────────────────────
+  /api/sessions/{user_id}:
+    get:
+      tags: [sessions]
+      summary: List all sessions for a user
+      operationId: listSessions
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: Map of site → AuthSession
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: "#/components/schemas/AuthSession"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/sessions/{user_id}/{site}:
+    post:
+      tags: [sessions]
+      summary: Store an encrypted session for a site
+      operationId: storeSession
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/Site"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [encrypted_state]
+              properties:
+                encrypted_state:
+                  type: string
+      responses:
+        "201":
+          description: Session stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    get:
+      tags: [sessions]
+      summary: Get session for a specific site
+      operationId: getSession
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/Site"
+      responses:
+        "200":
+          description: Auth session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [sessions]
+      summary: Delete session for a specific site
+      operationId: deleteSession
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/Site"
+      responses:
+        "204":
+          description: Session deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Orders ────────────────────────────────────────────────────────────────────
+  /api/orders/:
+    post:
+      tags: [orders]
+      summary: Create an order
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderRequest"
+      responses:
+        "201":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderRecord"
+
+  /api/orders/user/{user_id}:
+    get:
+      tags: [orders]
+      summary: Get all orders for a user
+      operationId: getUserOrders
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderRecord"
+
+  /api/orders/{order_id}:
+    get:
+      tags: [orders]
+      summary: Get an order by ID
+      operationId: getOrder
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Order record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderRecord"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      tags: [orders]
+      summary: Update an order
+      operationId: updateOrder
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrderRequest"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderRecord"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Cache ─────────────────────────────────────────────────────────────────────
+  /api/cache/products:
+    post:
+      tags: [cache]
+      summary: Cache product results for a query
+      operationId: cacheProducts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CacheProductsRequest"
+      responses:
+        "200":
+          description: Cache confirmation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cached:
+                    type: integer
+                    description: Number of products cached
+                  query:
+                    type: string
+
+    get:
+      tags: [cache]
+      summary: Retrieve cached products for a query
+      operationId: getCachedProducts
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: Search query to look up in cache
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cached product list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NormalizedProduct"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Conversations ─────────────────────────────────────────────────────────────
+  /api/conversations/{session_id}:
+    post:
+      tags: [conversations]
+      summary: Create or overwrite conversation state
+      operationId: createConversation
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StateEnvelope"
+      responses:
+        "201":
+          description: State saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StateEnvelope"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+    get:
+      tags: [conversations]
+      summary: Get conversation state
+      operationId: getConversation
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          description: Current state envelope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StateEnvelope"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [conversations]
+      summary: Delete conversation state
+      operationId: deleteConversation
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "204":
+          description: State deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── WebSocket ─────────────────────────────────────────────────────────────────
+  /ws/chat/{session_id}:
+    get:
+      tags: [websocket]
+      summary: Real-time chat WebSocket
+      description: |
+        Upgrade to WebSocket for real-time bidirectional communication.
+
+        **On connect:** If a prior `StateEnvelope` exists for the session it is
+        immediately sent as the first message.
+
+        **Client → Server:** Send a JSON-serialised `StateEnvelope`.
+
+        **Server → Client:** Responds with the persisted `StateEnvelope` after
+        each update, or `{"error": "invalid_message", "detail": "..."}` on
+        parse failure.
+      operationId: chatWebSocket
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "101":
+          description: Switching Protocols — WebSocket connection established
+
+# ── Components ────────────────────────────────────────────────────────────────
+components:
+  parameters:
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Unique user identifier
+
+    Site:
+      name: site
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Retail site identifier (e.g. amazon, walmart)
+
+    OrderId:
+      name: order_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Unique order identifier
+
+    SessionId:
+      name: session_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Unique conversation session identifier
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorDetail"
+
+    UnprocessableEntity:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorDetail"
+
+  schemas:
+    # ── Shared ─────────────────────────────────────────────────────────────────
+    ErrorDetail:
+      type: object
+      properties:
+        detail:
+          type: string
+
+    Intent:
+      type: string
+      enum:
+        - product_search
+        - purchase
+        - refine_search
+        - browse
+        - preference_update
+        - general_chat
+
+    Status:
+      type: string
+      enum:
+        - needs_clarification
+        - ready
+        - executing
+        - completed
+        - failed
+
+    ErrorCategory:
+      type: string
+      enum:
+        - retryable
+        - session_expired
+        - data_mismatch
+        - site_blocked
+        - fatal
+
+    ErrorObject:
+      type: object
+      required: [category, message, retryable]
+      properties:
+        category:
+          $ref: "#/components/schemas/ErrorCategory"
+        message:
+          type: string
+        retryable:
+          type: boolean
+        context:
+          type: object
+          additionalProperties: true
+          nullable: true
+
+    # ── User ───────────────────────────────────────────────────────────────────
+    AuthSession:
+      type: object
+      required: [site, encrypted_state, created_at]
+      properties:
+        site:
+          type: string
+        encrypted_state:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ExplicitPreferences:
+      type: object
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          default: {}
+
+    ImplicitPreferences:
+      type: object
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+          default: {}
+        decay_factor:
+          type: number
+          default: 0.9
+
+    PreferenceWeights:
+      type: object
+      properties:
+        price:
+          type: number
+          default: 0.25
+        rating:
+          type: number
+          default: 0.25
+        delivery:
+          type: number
+          default: 0.25
+        preference_match:
+          type: number
+          default: 0.25
+
+    PreferenceObject:
+      type: object
+      properties:
+        explicit:
+          $ref: "#/components/schemas/ExplicitPreferences"
+        implicit:
+          $ref: "#/components/schemas/ImplicitPreferences"
+        weights:
+          $ref: "#/components/schemas/PreferenceWeights"
+
+    PreferenceKeyValue:
+      type: object
+      required: [key]
+      properties:
+        key:
+          type: string
+          description: Preference key
+        value:
+          description: Preference value (any type)
+
+    UserDocument:
+      type: object
+      required: [user_id, email, display_name, created_at, last_active]
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        last_active:
+          type: string
+          format: date-time
+        auth:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/AuthSession"
+        preferences:
+          $ref: "#/components/schemas/PreferenceObject"
+        purchase_history:
+          type: array
+          items:
+            type: string
+        rejected_products:
+          type: array
+          items:
+            type: string
+        conversation_context:
+          type: object
+          additionalProperties: true
+
+    CreateUserRequest:
+      type: object
+      required: [email, display_name]
+      properties:
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+          nullable: true
+        conversation_context:
+          type: object
+          additionalProperties: true
+          nullable: true
+
+    # ── Product ────────────────────────────────────────────────────────────────
+    ProductPricing:
+      type: object
+      required: [current_price, currency]
+      properties:
+        current_price:
+          type: number
+        original_price:
+          type: number
+          nullable: true
+        currency:
+          type: string
+          default: USD
+
+    ProductRatings:
+      type: object
+      properties:
+        average:
+          type: number
+          nullable: true
+        count:
+          type: integer
+          nullable: true
+
+    ProductDelivery:
+      type: object
+      properties:
+        estimated_days:
+          type: integer
+          nullable: true
+        prime_eligible:
+          type: boolean
+          default: false
+        free_shipping:
+          type: boolean
+          default: false
+
+    ProductScoring:
+      type: object
+      required: [price_score, rating_score, delivery_score, preference_match_score, composite_score]
+      properties:
+        price_score:
+          type: number
+        rating_score:
+          type: number
+        delivery_score:
+          type: number
+        preference_match_score:
+          type: number
+        composite_score:
+          type: number
+        match_reasons:
+          type: array
+          items:
+            type: string
+
+    NormalizedProduct:
+      type: object
+      required:
+        - product_id
+        - source
+        - source_url
+        - source_product_id
+        - name
+        - category
+        - pricing
+        - scraped_at
+        - cache_ttl_seconds
+      properties:
+        product_id:
+          type: string
+        source:
+          type: string
+          description: Retail site identifier
+        source_url:
+          type: string
+          format: uri
+        source_product_id:
+          type: string
+        name:
+          type: string
+        brand:
+          type: string
+          nullable: true
+        category:
+          type: string
+        pricing:
+          $ref: "#/components/schemas/ProductPricing"
+        ratings:
+          $ref: "#/components/schemas/ProductRatings"
+        delivery:
+          $ref: "#/components/schemas/ProductDelivery"
+        attributes:
+          type: object
+          additionalProperties: true
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        scoring:
+          $ref: "#/components/schemas/ProductScoring"
+          nullable: true
+        scraped_at:
+          type: string
+          format: date-time
+        cache_ttl_seconds:
+          type: integer
+          default: 3600
+
+    # ── Order ──────────────────────────────────────────────────────────────────
+    PurchaseConfirmation:
+      type: object
+      required:
+        - product_name
+        - current_price
+        - delivery_address
+        - payment_last_four
+        - retail_site
+        - expires_at
+      properties:
+        product_name:
+          type: string
+        current_price:
+          type: number
+        delivery_address:
+          type: string
+        payment_last_four:
+          type: string
+          maxLength: 4
+        retail_site:
+          type: string
+        estimated_delivery_date:
+          type: string
+          nullable: true
+        return_policy_summary:
+          type: string
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+        confirmed:
+          type: boolean
+          default: false
+
+    OrderRecord:
+      type: object
+      required: [order_id, user_id, product, confirmation, status, created_at, updated_at]
+      properties:
+        order_id:
+          type: string
+        user_id:
+          type: string
+        product:
+          $ref: "#/components/schemas/NormalizedProduct"
+        confirmation:
+          $ref: "#/components/schemas/PurchaseConfirmation"
+        site_order_id:
+          type: string
+          nullable: true
+        status:
+          type: string
+          default: placed
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateOrderRequest:
+      type: object
+      required: [user_id, product, confirmation]
+      properties:
+        user_id:
+          type: string
+        product:
+          $ref: "#/components/schemas/NormalizedProduct"
+        confirmation:
+          $ref: "#/components/schemas/PurchaseConfirmation"
+
+    UpdateOrderRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          nullable: true
+        site_order_id:
+          type: string
+          nullable: true
+
+    # ── Cache ──────────────────────────────────────────────────────────────────
+    CacheProductsRequest:
+      type: object
+      required: [query, products]
+      properties:
+        query:
+          type: string
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/NormalizedProduct"
+        ttl:
+          type: integer
+          default: 3600
+          description: Cache TTL in seconds
+
+    # ── Conversation ───────────────────────────────────────────────────────────
+    StateEnvelope:
+      type: object
+      required: [session_id, user_id, turn_id, timestamp]
+      properties:
+        session_id:
+          type: string
+        user_id:
+          type: string
+        turn_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        intent:
+          $ref: "#/components/schemas/Intent"
+          nullable: true
+        status:
+          $ref: "#/components/schemas/Status"
+        query:
+          type: string
+          nullable: true
+        missing_fields:
+          type: array
+          items:
+            type: string
+        clarification:
+          type: string
+          nullable: true
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/NormalizedProduct"
+        selected_product:
+          $ref: "#/components/schemas/NormalizedProduct"
+          nullable: true
+        purchase_confirmation:
+          $ref: "#/components/schemas/PurchaseConfirmation"
+          nullable: true
+        preference_updates:
+          type: object
+          additionalProperties: true
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ErrorObject"
+        metadata:
+          type: object
+          additionalProperties: true
