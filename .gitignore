@@ -1,0 +1,8 @@
+.claude/
+backend/venv/
+backend/.env
+AGENTS.md
+STATE.md
+__pycache__/
+*.pyc
+.pytest_cache/
