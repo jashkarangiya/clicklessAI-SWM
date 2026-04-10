@@ -1,13 +1,15 @@
 """
 Anti-bot resilience layer for Playwright browser automation.
 Handles request pacing, user-agent rotation, CAPTCHA detection,
-proxy rotation, and stealth patches to mask automation signals.
+proxy rotation, stealth patches, and lightweight HTTP pre-checks via aiohttp.
 """
 
 import random
 import asyncio
 import logging
 from typing import Optional, Dict, List
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -182,3 +184,42 @@ def get_proxy_config(proxy_url: Optional[str] = None) -> Optional[Dict]:
     return {
         "server": proxy_url,
     }
+
+
+async def preflight_check(url: str, timeout: int = 10) -> Dict:
+    """
+    Lightweight aiohttp HEAD request to validate a URL before launching Playwright.
+    Avoids spinning up a full browser for dead links or server errors.
+
+    Returns:
+        Dict with 'reachable' (bool), 'status' (int), and 'redirect_url' (str or None).
+    """
+    headers = {"User-Agent": get_random_user_agent()}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.head(
+                url,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=timeout),
+                allow_redirects=True,
+            ) as resp:
+                return {
+                    "reachable": resp.status < 400,
+                    "status": resp.status,
+                    "redirect_url": str(resp.url) if str(resp.url) != url else None,
+                }
+    except aiohttp.ClientError as e:
+        logger.debug(f"Preflight check failed for {url}: {e}")
+        return {"reachable": False, "status": 0, "redirect_url": None}
+    except asyncio.TimeoutError:
+        logger.debug(f"Preflight check timed out for {url}")
+        return {"reachable": False, "status": 0, "redirect_url": None}
+
+
+async def batch_preflight(urls: List[str], timeout: int = 10) -> List[Dict]:
+    """
+    Run preflight checks on multiple URLs concurrently using aiohttp.
+    Useful for validating a list of product URLs before browser scraping.
+    """
+    tasks = [preflight_check(url, timeout) for url in urls]
+    return await asyncio.gather(*tasks)

@@ -161,6 +161,18 @@ class TestStealthModule:
         assert len(STEALTH_SCRIPTS) > 0
         assert any("webdriver" in s for s in STEALTH_SCRIPTS)
 
+    def test_preflight_check_importable(self):
+        from scraper.browser.stealth import preflight_check, batch_preflight
+        assert callable(preflight_check)
+        assert callable(batch_preflight)
+
+    @pytest.mark.asyncio
+    async def test_preflight_check_bad_url(self):
+        from scraper.browser.stealth import preflight_check
+        result = await preflight_check("http://localhost:1/nonexistent", timeout=2)
+        assert result["reachable"] is False
+        assert result["status"] == 0
+
 
 # ── Unit tests for selector loading ────────────────────────────────────
 

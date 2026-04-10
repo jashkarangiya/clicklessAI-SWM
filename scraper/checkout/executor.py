@@ -24,6 +24,7 @@ from scraper.browser.stealth import (
     random_delay,
     detect_captcha,
     human_like_mouse_move,
+    preflight_check,
 )
 from scraper.browser.context_manager import BrowserContextManager
 
@@ -226,7 +227,14 @@ class CheckoutExecutor:
         )
 
     async def _navigate_to_product(self, page: Page, url: str, site: str) -> Dict:
-        """Navigate to the product page and verify it loaded."""
+        """Navigate to the product page and verify it loaded. Uses aiohttp preflight."""
+        # Lightweight pre-check before expensive browser navigation
+        preflight = await preflight_check(url)
+        if not preflight["reachable"]:
+            return _make_error(
+                f"url_unreachable (status {preflight['status']})", site, "navigate"
+            )
+
         try:
             await page.goto(url, wait_until="domcontentloaded", timeout=30000)
             await random_delay(2, 3)

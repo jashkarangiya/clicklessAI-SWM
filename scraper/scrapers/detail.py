@@ -18,6 +18,7 @@ from scraper.browser.stealth import (
     random_delay,
     detect_captcha,
     get_stealth_browser_args,
+    preflight_check,
 )
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,12 @@ async def scrape_product_detail(
     Returns:
         Dict with full product detail data.
     """
+    # aiohttp pre-flight: skip expensive browser launch for dead URLs
+    preflight = await preflight_check(product_url)
+    if not preflight["reachable"]:
+        logger.warning(f"Preflight failed for {product_url} (status: {preflight['status']})")
+        return _error_product(site, product_url, f"url_unreachable (status {preflight['status']})")
+
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(
             headless=True,
