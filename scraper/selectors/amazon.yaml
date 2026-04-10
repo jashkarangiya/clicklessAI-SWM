@@ -33,6 +33,16 @@ product_detail:
   availability: "#availability span"
   brand: "#bylineInfo"
   category_breadcrumb: "#wayfinding-breadcrumbs_container ul li a"
+  # Top reviews
+  top_reviews: "#cm-cr-dp-review-list div.review"
+  review_text: "span.review-text-content span"
+  review_rating: "i.review-rating span.a-icon-alt"
+  review_author: "span.a-profile-name"
+  # Related products
+  related_products: "div.a-carousel-card a.a-link-normal"
+  related_title: "div.a-carousel-card div.p13n-sc-truncate-desktop-type2"
+  related_price: "div.a-carousel-card span.a-price span.a-offscreen"
+  related_image: "div.a-carousel-card img"
 
 checkout:
   # Checkout flow selectors

@@ -42,6 +42,16 @@ product_detail:
   availability: "div[data-testid='add-to-cart-section']"
   brand: "a.b.black"
   seller: "div.seller-name a"
+  # Top reviews
+  top_reviews: "div.customer-review-block"
+  review_text: "span.review-text"
+  review_rating: "span.review-star-rating"
+  review_author: "span.review-author"
+  # Related products
+  related_products: "div[data-testid='related-item'] a"
+  related_title: "div[data-testid='related-item'] span.w_Cs"
+  related_price: "div[data-testid='related-item'] span[itemprop='price']"
+  related_image: "div[data-testid='related-item'] img"
 
 checkout:
   # Checkout flow selectors

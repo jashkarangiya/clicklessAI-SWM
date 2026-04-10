@@ -206,6 +206,22 @@ class TestSelectorRegistry:
         for field in required:
             assert field in sel["search_results"], f"Missing: {field}"
 
+    def test_amazon_detail_has_review_selectors(self):
+        import yaml
+        path = Path(__file__).parent.parent / "selectors" / "amazon.yaml"
+        with open(path) as f:
+            sel = yaml.safe_load(f)
+        assert "top_reviews" in sel["product_detail"]
+        assert "related_products" in sel["product_detail"]
+
+    def test_walmart_detail_has_review_selectors(self):
+        import yaml
+        path = Path(__file__).parent.parent / "selectors" / "walmart.yaml"
+        with open(path) as f:
+            sel = yaml.safe_load(f)
+        assert "top_reviews" in sel["product_detail"]
+        assert "related_products" in sel["product_detail"]
+
 
 # ── Unit tests for context manager ─────────────────────────────────────
 
@@ -271,16 +287,44 @@ class TestCheckoutExecutor:
         assert executor._ctx_manager is mgr
 
     def test_amazon_checkout_selectors_loaded(self):
-        from scraper.checkout.executor import AMAZON_SELECTORS
-        assert "add_to_cart" in AMAZON_SELECTORS
-        assert "proceed_to_checkout" in AMAZON_SELECTORS
-        assert "place_order" in AMAZON_SELECTORS
+        from scraper.checkout.executor import AMAZON_CHECKOUT
+        assert "add_to_cart" in AMAZON_CHECKOUT
+        assert "proceed_to_checkout" in AMAZON_CHECKOUT
+        assert "place_order" in AMAZON_CHECKOUT
 
     def test_walmart_checkout_selectors_loaded(self):
-        from scraper.checkout.executor import WALMART_SELECTORS
-        assert "add_to_cart" in WALMART_SELECTORS
-        assert "proceed_to_checkout" in WALMART_SELECTORS
-        assert "place_order" in WALMART_SELECTORS
+        from scraper.checkout.executor import WALMART_CHECKOUT
+        assert "add_to_cart" in WALMART_CHECKOUT
+        assert "proceed_to_checkout" in WALMART_CHECKOUT
+        assert "place_order" in WALMART_CHECKOUT
+
+    def test_error_classification_retryable(self):
+        from scraper.checkout.executor import _classify_error
+        assert _classify_error("captcha_required") == "retryable"
+        assert _classify_error("timeout error") == "retryable"
+
+    def test_error_classification_session_expired(self):
+        from scraper.checkout.executor import _classify_error
+        assert _classify_error("login_required") == "session_expired"
+        assert _classify_error("session expired") == "session_expired"
+
+    def test_error_classification_fatal(self):
+        from scraper.checkout.executor import _classify_error
+        assert _classify_error("add_to_cart_button_not_found") == "fatal"
+
+    def test_make_error_structure(self):
+        from scraper.checkout.executor import _make_error
+        err = _make_error("test_error", "amazon", "add_to_cart")
+        assert err["status"] == "error"
+        assert err["error"] == "test_error"
+        assert err["error_category"] == "fatal"
+        assert err["failed_step"] == "add_to_cart"
+        assert err["site"] == "amazon"
+
+    def test_parse_price_in_executor(self):
+        from scraper.checkout.executor import _parse_price
+        assert _parse_price("$99.99") == 99.99
+        assert _parse_price(None) is None
 
 
 # ── Normalized product schema validation ───────────────────────────────
@@ -299,6 +343,7 @@ class TestProductSchema:
         "title", "price", "currency", "rating", "review_count",
         "description", "features", "main_image", "images",
         "specifications", "in_stock", "product_url", "site", "source",
+        "top_reviews", "related_products",
     }
 
     def test_amazon_captcha_product_schema(self):

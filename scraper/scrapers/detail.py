@@ -183,6 +183,12 @@ async def _extract_amazon_detail(page: Page, product_url: str) -> Dict:
         if text:
             categories.append(text)
 
+    # Top reviews
+    top_reviews = await _extract_reviews(page, sel)
+
+    # Related products
+    related_products = await _extract_related(page, sel)
+
     return {
         "title": title,
         "price": price,
@@ -199,6 +205,8 @@ async def _extract_amazon_detail(page: Page, product_url: str) -> Dict:
         "in_stock": in_stock,
         "brand": brand,
         "categories": categories,
+        "top_reviews": top_reviews,
+        "related_products": related_products,
         "product_url": product_url,
         "site": "amazon",
         "source": "amazon",
@@ -271,6 +279,12 @@ async def _extract_walmart_detail(page: Page, product_url: str) -> Dict:
     seller_el = await page.query_selector(sel["seller"])
     seller = (await seller_el.inner_text()).strip() if seller_el else None
 
+    # Top reviews
+    top_reviews = await _extract_reviews(page, sel)
+
+    # Related products
+    related_products = await _extract_related(page, sel)
+
     return {
         "title": title,
         "price": price,
@@ -288,10 +302,65 @@ async def _extract_walmart_detail(page: Page, product_url: str) -> Dict:
         "brand": brand,
         "seller": seller,
         "categories": [],
+        "top_reviews": top_reviews,
+        "related_products": related_products,
         "product_url": product_url,
         "site": "walmart",
         "source": "walmart",
     }
+
+
+async def _extract_reviews(page: Page, sel: Dict) -> List[Dict]:
+    """Extract top customer reviews from the product page."""
+    reviews = []
+    try:
+        review_els = await page.query_selector_all(sel.get("top_reviews", ""))
+        for el in review_els[:5]:  # Limit to top 5 reviews
+            review = {}
+            text_el = await el.query_selector(sel.get("review_text", ""))
+            if text_el:
+                review["text"] = (await text_el.inner_text()).strip()
+            rating_el = await el.query_selector(sel.get("review_rating", ""))
+            if rating_el:
+                rating_text = await rating_el.inner_text()
+                review["rating"] = _parse_rating(rating_text)
+            author_el = await el.query_selector(sel.get("review_author", ""))
+            if author_el:
+                review["author"] = (await author_el.inner_text()).strip()
+            if review.get("text"):
+                reviews.append(review)
+    except Exception as e:
+        logger.debug(f"Review extraction error: {e}")
+    return reviews
+
+
+async def _extract_related(page: Page, sel: Dict) -> List[Dict]:
+    """Extract related/recommended products from the product page."""
+    related = []
+    try:
+        # Try related product titles
+        title_els = await page.query_selector_all(sel.get("related_title", ""))
+        price_els = await page.query_selector_all(sel.get("related_price", ""))
+        image_els = await page.query_selector_all(sel.get("related_image", ""))
+        link_els = await page.query_selector_all(sel.get("related_products", ""))
+
+        count = min(len(title_els), 5)  # Limit to 5 related products
+        for i in range(count):
+            item = {}
+            item["title"] = (await title_els[i].inner_text()).strip()
+            if i < len(price_els):
+                price_text = await price_els[i].inner_text()
+                item["price"] = _parse_price(price_text)
+            if i < len(image_els):
+                item["image"] = await image_els[i].get_attribute("src")
+            if i < len(link_els):
+                href = await link_els[i].get_attribute("href")
+                item["url"] = href
+            if item.get("title"):
+                related.append(item)
+    except Exception as e:
+        logger.debug(f"Related products extraction error: {e}")
+    return related
 
 
 def _parse_review_count(text: Optional[str]) -> int:
@@ -320,6 +389,8 @@ def _captcha_error(site: str, product_url: str) -> Dict:
         "in_stock": False,
         "brand": None,
         "categories": [],
+        "top_reviews": [],
+        "related_products": [],
         "product_url": product_url,
         "site": site,
         "source": site,
@@ -345,6 +416,8 @@ def _error_product(site: str, product_url: str, error: str) -> Dict:
         "in_stock": False,
         "brand": None,
         "categories": [],
+        "top_reviews": [],
+        "related_products": [],
         "product_url": product_url,
         "site": site,
         "source": site,
