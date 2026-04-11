@@ -2,27 +2,62 @@
 /**
  * ClickLess AI – Chat Input
  *
- * Premium composer dock with instructive placeholder and trust microcopy.
- * Enter sends, Shift+Enter = newline
+ * Elevated composer dock:
+ * - Resting shadow creates depth above the canvas
+ * - Focus state: branded border + glow ring
+ * - Animated rotating placeholder (category examples)
+ * - Trust lock + keyboard hints in one balanced row
+ * - ⌘K focuses the input from anywhere on the page
  */
-import { useRef, useState, useCallback, KeyboardEvent } from 'react';
-import { Box, Textarea, ActionIcon, Tooltip, Text } from '@mantine/core';
-import { IconSend, IconSendOff } from '@tabler/icons-react';
+import { useRef, useState, useCallback, useEffect, KeyboardEvent } from 'react';
+import { Box, Textarea, ActionIcon, Text } from '@mantine/core';
+import { IconSend, IconSendOff, IconLock } from '@tabler/icons-react';
+
+const PLACEHOLDERS = [
+  'Find a 4K TV under $900 that arrives by Friday…',
+  'Reorder my last Lavazza coffee pods from Amazon…',
+  'Compare the Sony WH-1000XM5 vs Bose QC45…',
+  'Where is my order from last Tuesday?',
+  'Best standing desk under $600 with fast delivery…',
+];
 
 interface ChatInputProps {
-  onSend: (text: string) => void;
+  onSend:    (text: string) => void;
   disabled?: boolean;
-  placeholder?: string;
 }
 
-export function ChatInput({
-  onSend,
-  disabled = false,
-  placeholder = 'Find a 4K TV under $900 that arrives by Friday',
-}: ChatInputProps) {
-  const [value, setValue] = useState('');
+export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
+  const [value,     setValue]     = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [phIdx,     setPhIdx]     = useState(0);
+  const [phVisible, setPhVisible] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // ── ⌘K / Ctrl+K → focus input from anywhere ─────────────────────────────
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        textareaRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // ── Rotate placeholder every 4 s (paused while focused or typing) ────────
+  useEffect(() => {
+    if (isFocused || value) return;
+    const id = setInterval(() => {
+      setPhVisible(false);
+      const t = setTimeout(() => {
+        setPhIdx((i) => (i + 1) % PLACEHOLDERS.length);
+        setPhVisible(true);
+      }, 260);
+      return () => clearTimeout(t);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [isFocused, value]);
 
   const handleSend = useCallback(() => {
     const trimmed = value.trim();
@@ -42,33 +77,102 @@ export function ChatInput({
   const canSend = !disabled && value.trim().length > 0;
 
   return (
-    <Box
-      style={{
-        padding: '16px 24px 12px',
-        backgroundColor: 'var(--cl-bg)',
-      }}
-    >
+    <Box style={{ padding: '10px 20px 16px', backgroundColor: 'var(--cl-bg)' }}>
+
+      {/* ── Trust + keyboard hints row ── */}
+      <Box style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 }}>
+        <Box style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <IconLock size={11} style={{ color: 'var(--cl-text-muted)', flexShrink: 0 }} />
+          <Text size="xs" style={{ color: 'var(--cl-text-muted)', fontSize: '0.7rem' }}>
+            ClickLess won't place any order without your approval
+          </Text>
+        </Box>
+
+        <Box style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {[
+            { key: '⌘K', label: 'focus' },
+            { key: 'Enter', label: 'send' },
+          ].map(({ key, label }) => (
+            <Box key={key} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              <Box
+                component="kbd"
+                style={{
+                  fontSize: '0.66rem',
+                  color: 'var(--cl-text-muted)',
+                  backgroundColor: 'var(--cl-surface)',
+                  border: '1px solid var(--cl-border)',
+                  borderRadius: 5,
+                  padding: '1px 6px',
+                  lineHeight: 1.6,
+                  fontFamily: 'inherit',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                }}
+              >
+                {key}
+              </Box>
+              <Text size="xs" style={{ color: 'var(--cl-text-muted)', fontSize: '0.66rem' }}>
+                {label}
+              </Text>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+
+      {/* ── Input container — elevated, focus-aware ── */}
       <Box
         style={{
           display: 'flex',
           gap: 10,
           alignItems: 'flex-end',
           backgroundColor: 'var(--cl-surface)',
-          border: '1px solid',
+          border: '1.5px solid',
           borderColor: isFocused ? 'var(--cl-brand)' : 'var(--cl-border)',
-          borderRadius: 20,
-          padding: '8px 8px 8px 20px',
-          transition: 'border-color 0.2s ease',
-          boxShadow: isFocused ? '0 0 0 3px rgba(47, 99, 245, 0.08)' : '0 1px 3px rgba(0,0,0,0.03)',
-          minHeight: 56,
+          borderRadius: 22,
+          padding: '10px 10px 10px 20px',
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+          // Resting: soft lift — Focus: branded glow
+          boxShadow: isFocused
+            ? '0 0 0 4px rgba(12, 122, 138, 0.12), 0 4px 16px rgba(0,0,0,0.07)'
+            : '0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
+          minHeight: 62,
+          position: 'relative',
         }}
       >
+        {/* Animated placeholder overlay */}
+        {!value && (
+          <Box
+            style={{
+              position: 'absolute',
+              top: 0, left: 20, right: 58, bottom: 0,
+              pointerEvents: 'none',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <Text
+              style={{
+                color: 'var(--cl-text-muted)',
+                fontSize: '0.95rem',
+                opacity: phVisible ? 1 : 0,
+                transition: 'opacity 0.26s ease',
+                userSelect: 'none',
+                lineHeight: 1.6,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {PLACEHOLDERS[phIdx]}
+            </Text>
+          </Box>
+        )}
+
         <Textarea
           ref={textareaRef}
           value={value}
           onChange={(e) => setValue(e.currentTarget.value)}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder=""
           disabled={disabled}
           autosize
           minRows={1}
@@ -85,47 +189,37 @@ export function ChatInput({
               boxShadow: 'none',
               backgroundColor: 'transparent',
               padding: 0,
-              paddingTop: 6,
+              paddingTop: 5,
               resize: 'none',
               color: 'var(--cl-text-primary)',
-              lineHeight: 1.6,
-              fontSize: '0.95rem',
+              lineHeight: 1.65,
+              fontSize: '0.96rem',
             },
           }}
         />
-        <Tooltip
-          label={disabled ? 'Please wait…' : 'Send message (Enter)'}
-          withArrow
-          position="top-end"
-        >
-          <ActionIcon
-            onClick={handleSend}
-            disabled={!canSend}
-            size={40}
-            radius={9999}
-            id="chat-send-btn"
-            aria-label="Send message"
-            style={{
-              flexShrink: 0,
-              backgroundColor: canSend ? 'var(--cl-brand)' : 'var(--cl-surface-raised)',
-              border: 'none',
-              transition: 'all 0.15s ease',
-              color: canSend ? '#fff' : 'var(--cl-text-muted)',
-            }}
-          >
-            {disabled ? <IconSendOff size={17} /> : <IconSend size={17} />}
-          </ActionIcon>
-        </Tooltip>
-      </Box>
 
-      {/* Trust microcopy */}
-      <Text
-        size="xs"
-        ta="center"
-        style={{ color: 'var(--cl-text-muted)', marginTop: 8, fontSize: '0.72rem' }}
-      >
-        ClickLess will not place an order without your approval
-      </Text>
+        {/* Send button */}
+        <ActionIcon
+          onClick={handleSend}
+          disabled={!canSend}
+          size={42}
+          radius={9999}
+          id="chat-send-btn"
+          aria-label="Send message"
+          title={disabled ? 'Please wait…' : 'Send (Enter)'}
+          style={{
+            flexShrink: 0,
+            backgroundColor: canSend ? 'var(--cl-brand)' : 'var(--cl-surface-raised)',
+            border: 'none',
+            transition: 'background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease',
+            color: canSend ? '#fff' : 'var(--cl-text-muted)',
+            boxShadow: canSend ? '0 2px 8px rgba(12,122,138,0.30)' : 'none',
+            transform: canSend ? 'scale(1)' : 'scale(0.95)',
+          }}
+        >
+          {disabled ? <IconSendOff size={17} /> : <IconSend size={17} />}
+        </ActionIcon>
+      </Box>
     </Box>
   );
 }

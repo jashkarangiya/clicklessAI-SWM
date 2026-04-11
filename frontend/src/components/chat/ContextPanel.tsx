@@ -42,7 +42,7 @@ export function ContextPanel({ searchCriteria }: ContextPanelProps) {
               backgroundColor: 'var(--cl-brand-soft)',
               borderRadius: 12,
               padding: '10px 14px',
-              border: '1px solid rgba(47, 99, 245, 0.1)',
+              border: '1px solid rgba(12, 122, 138, 0.12)',
             }}
           >
             <Text size="xs" style={{ color: 'var(--cl-brand)', lineHeight: 1.5 }}>

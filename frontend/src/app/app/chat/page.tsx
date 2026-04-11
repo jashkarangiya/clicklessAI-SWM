@@ -126,7 +126,7 @@ export default function ChatPage() {
   const hasMessages = messages.length > 0;
 
   return (
-    <Box style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
+    <Box style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       {!hasMessages ? (
         <ChatEmptyState onSuggestion={handleSuggestion} />
       ) : (

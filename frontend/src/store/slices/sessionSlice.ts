@@ -53,6 +53,11 @@ export const sessionSlice = createSlice({
         setAmazonSessionDetails: (state, action: PayloadAction<AmazonSessionDetails | null>) => {
             state.amazonSessionDetails = action.payload;
         },
+        updateUser: (state, action: PayloadAction<Partial<User>>) => {
+            if (state.user) {
+                state.user = { ...state.user, ...action.payload };
+            }
+        },
         logout: (state) => {
             state.user = null;
             state.token = null;
@@ -69,6 +74,7 @@ export const {
     setWsState,
     setSiteConnections,
     setAmazonSessionDetails,
+    updateUser,
     logout,
 } = sessionSlice.actions;
 
