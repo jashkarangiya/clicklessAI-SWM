@@ -6,11 +6,14 @@
  * Only uses red for actual failures needing intervention.
  */
 import { Badge, Tooltip } from '@mantine/core';
-import { IconWifi, IconWifiOff, IconRefresh } from '@tabler/icons-react';
+import { IconWifi, IconRefresh } from '@tabler/icons-react';
 import { useAppSelector } from '@/store/hooks';
 
 export function ConnectionStatusBadge() {
   const wsState = useAppSelector((state) => state.session.wsState);
+
+  // Don't alarm users on first load — only show when there's something actionable
+  if (wsState === 'idle' || wsState === 'closed') return null;
 
   const config = {
     connected: {
@@ -28,17 +31,9 @@ export function ConnectionStatusBadge() {
       bg: 'var(--cl-warning-soft)', color: 'var(--cl-warning)',
       icon: <IconRefresh size={12} />, tooltip: 'Reconnecting to server...',
     },
-    idle: {
-      label: 'Offline',
-      bg: 'var(--cl-surface-raised)', color: 'var(--cl-text-muted)',
-      icon: <IconWifiOff size={12} />, tooltip: 'Not connected',
-    },
-    closed: {
-      label: 'Offline',
-      bg: 'var(--cl-surface-raised)', color: 'var(--cl-text-muted)',
-      icon: <IconWifiOff size={12} />, tooltip: 'Connection closed — will reconnect automatically',
-    },
   }[wsState];
+
+  if (!config) return null;
 
   return (
     <Tooltip label={config.tooltip} withArrow>

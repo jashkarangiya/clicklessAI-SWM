@@ -2,10 +2,10 @@
 /**
  * ClickLess AI – Site Connection Card
  *
- * Premium integration-style card for Amazon/Walmart connections.
- * Shows status, permissions, session details in a trust-building layout.
+ * Retailer connection card with real brand logos, dot-status badges,
+ * and a clean connect / disconnect action.
  */
-import { Box, Text, Button, Group, Badge, Stack } from '@mantine/core';
+import { Box, Text, Button, Group, Stack } from '@mantine/core';
 import { IconPlugConnected, IconPlugConnectedX, IconRefresh } from '@tabler/icons-react';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'expired';
@@ -17,27 +17,93 @@ interface AmazonSessionDetails {
 }
 
 interface SiteConnectionCardProps {
-  site: 'Amazon' | 'Walmart';
-  status: ConnectionStatus;
+  site:           'Amazon' | 'Walmart';
+  status:         ConnectionStatus;
   sessionDetails?: AmazonSessionDetails | null;
-  onConnect: () => void;
-  onDisconnect: () => void;
+  onConnect:      () => void;
+  onDisconnect:   () => void;
 }
 
-const STATUS_CONFIG: Record<ConnectionStatus, { color: string; bg: string; label: string }> = {
-  connected:    { color: 'var(--cl-success)', bg: 'var(--cl-success-soft)', label: 'Connected' },
-  disconnected: { color: 'var(--cl-text-muted)', bg: 'var(--cl-surface-raised)', label: 'Not connected' },
-  expired:      { color: 'var(--cl-warning)', bg: 'var(--cl-warning-soft)', label: 'Session expired' },
+// ── Status dot config ────────────────────────────────────────────────────────
+
+const STATUS_CONFIG: Record<ConnectionStatus, { dotColor: string; label: string; textColor: string; bgColor: string }> = {
+  connected:    { dotColor: 'var(--cl-success)',    label: 'Connected',      textColor: 'var(--cl-success)',    bgColor: 'var(--cl-success-soft)' },
+  disconnected: { dotColor: '#CBD5E1',              label: 'Not connected',  textColor: 'var(--cl-text-muted)', bgColor: 'var(--cl-surface-raised)' },
+  expired:      { dotColor: 'var(--cl-warning)',    label: 'Session expired', textColor: 'var(--cl-warning)',   bgColor: 'var(--cl-warning-soft)' },
 };
 
-const SITE_COLORS: Record<string, string> = {
-  Amazon:  '#FF9900',
-  Walmart: '#0071CE',
+// ── Brand logos ──────────────────────────────────────────────────────────────
+
+function AmazonLogo() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="48" height="48" rx="13" fill="#FF9900" />
+      {/* Amazon wordmark — simplified inline text path */}
+      <text
+        x="24" y="22"
+        textAnchor="middle"
+        fill="#131921"
+        fontSize="9.5"
+        fontWeight="800"
+        fontFamily="Arial, Helvetica, sans-serif"
+        letterSpacing="-0.2"
+      >
+        amazon
+      </text>
+      {/* Smile arrow */}
+      <path
+        d="M14 29 C18 34 30 34 34 29"
+        stroke="#131921"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Arrowhead */}
+      <path
+        d="M31.5 27.5 L34 29 L31.5 31"
+        stroke="#131921"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
+function WalmartLogo() {
+  // Walmart's 6-petal spark, each petal is a rounded ellipse rotated around center
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="48" height="48" rx="13" fill="#0071CE" />
+      <g transform="translate(24,24)">
+        {[0, 60, 120, 180, 240, 300].map((deg) => (
+          <ellipse
+            key={deg}
+            cx="0"
+            cy="-8.5"
+            rx="2.8"
+            ry="6"
+            fill="white"
+            transform={`rotate(${deg})`}
+          />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+const SITE_LOGOS: Record<string, React.ReactNode> = {
+  Amazon:  <AmazonLogo />,
+  Walmart: <WalmartLogo />,
 };
 
-export function SiteConnectionCard({ site, status, sessionDetails, onConnect, onDisconnect }: SiteConnectionCardProps) {
-  const cfg = STATUS_CONFIG[status];
-  const siteColor = SITE_COLORS[site] ?? 'var(--cl-brand)';
+// ── Component ────────────────────────────────────────────────────────────────
+
+export function SiteConnectionCard({
+  site, status, sessionDetails, onConnect, onDisconnect,
+}: SiteConnectionCardProps) {
+  const cfg         = STATUS_CONFIG[status];
   const isConnected = status === 'connected';
 
   return (
@@ -52,33 +118,41 @@ export function SiteConnectionCard({ site, status, sessionDetails, onConnect, on
     >
       <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
         <Group gap="md" align="flex-start" style={{ flex: 1 }}>
-          <Box
-            style={{
-              width: 48, height: 48, borderRadius: 14,
-              backgroundColor: `${siteColor}10`,
-              border: `1px solid ${siteColor}20`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Text fw={800} size="md" style={{ color: siteColor }}>{site[0]}</Text>
+
+          {/* Brand logo */}
+          <Box style={{ flexShrink: 0 }}>
+            {SITE_LOGOS[site]}
           </Box>
+
           <Stack gap={6} style={{ flex: 1 }}>
-            <Group gap="sm">
+            {/* Name + dot badge */}
+            <Group gap="sm" align="center">
               <Text fw={700} size="md" style={{ color: 'var(--cl-text-primary)' }}>{site}</Text>
-              <Badge
-                size="sm"
-                radius={9999}
+
+              {/* Dot-style status badge */}
+              <Box
                 style={{
-                  backgroundColor: cfg.bg,
-                  color: cfg.color,
-                  border: 'none',
-                  fontWeight: 600,
-                  textTransform: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  backgroundColor: cfg.bgColor,
+                  borderRadius: 9999,
+                  padding: '3px 9px',
                 }}
               >
-                {cfg.label}
-              </Badge>
+                <Box
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: cfg.dotColor,
+                    flexShrink: 0,
+                  }}
+                />
+                <Text size="xs" style={{ color: cfg.textColor, fontWeight: 600, fontSize: '0.72rem' }}>
+                  {cfg.label}
+                </Text>
+              </Box>
             </Group>
 
             {/* Session details */}
@@ -88,12 +162,15 @@ export function SiteConnectionCard({ site, status, sessionDetails, onConnect, on
                   Context: {sessionDetails.browser_context_id}
                 </Text>
                 <Text size="xs" style={{ color: 'var(--cl-text-muted)' }}>
-                  Last verified: {new Date(sessionDetails.last_verified).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  Last verified:{' '}
+                  {new Date(sessionDetails.last_verified).toLocaleTimeString([], {
+                    hour: '2-digit', minute: '2-digit',
+                  })}
                 </Text>
               </Stack>
             )}
 
-            {/* Permissions info */}
+            {/* Permissions */}
             {isConnected && (
               <Text size="xs" style={{ color: 'var(--cl-text-secondary)', marginTop: 2 }}>
                 Search, compare, and checkout — approval required for purchases
@@ -102,7 +179,7 @@ export function SiteConnectionCard({ site, status, sessionDetails, onConnect, on
           </Stack>
         </Group>
 
-        {/* Actions */}
+        {/* Action button */}
         <Group gap="xs">
           {status === 'connected' ? (
             <Button

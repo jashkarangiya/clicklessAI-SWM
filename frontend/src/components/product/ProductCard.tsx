@@ -42,7 +42,7 @@ export function ProductCard({ product, onBuy, onDetail }: ProductCardProps) {
         flexDirection: 'column',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
         boxShadow: isRecommended
-          ? '0 4px 16px rgba(47, 99, 245, 0.1)'
+          ? '0 4px 16px rgba(12, 122, 138, 0.14)'
           : '0 1px 3px rgba(0,0,0,0.04)',
         position: 'relative',
       }}
