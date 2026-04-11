@@ -41,7 +41,7 @@ export function ProductComparisonGrid({ products, summary, onBuy, onDetail }: Pr
           style={{
             backgroundColor: 'var(--cl-surface)',
             border: '1px solid var(--cl-border)',
-            borderRadius: 10,
+            borderRadius: 16,
             padding: '12px 16px',
           }}
         >
@@ -58,9 +58,9 @@ export function ProductComparisonGrid({ products, summary, onBuy, onDetail }: Pr
             key={h.label}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              backgroundColor: 'var(--cl-surface-alt)',
+              backgroundColor: 'var(--cl-surface)',
               border: '1px solid var(--cl-border)',
-              borderRadius: 20, padding: '5px 12px',
+              borderRadius: 9999, padding: '6px 14px',
             }}
           >
             <span style={{ color: 'var(--cl-brand)' }}>{h.icon}</span>

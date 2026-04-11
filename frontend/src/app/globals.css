@@ -1,69 +1,116 @@
 /**
  * ClickLess AI – Global CSS
  *
- * Purpose:
- *   1. CSS custom property injection (--cl-* tokens) for dark/light schemes
- *   2. Base resets and box-model helpers
- *   3. Smooth scrolling and reduced-motion respect
- *   4. Typography baseline
- *
- * NOTE: No component-specific styles here. All component styles live in
- * Mantine theme overrides or component-level style props.
+ * Theme: Ink / Pearl / Cobalt
+ *   Primary accent: Cobalt blue — the only strong action color
+ *   Success/status:  Mint green  — status only, never CTA
+ *   Support:         Amber       — tiny editorial note only
+ *   Light:           pearl off-white canvas, white surfaces, ink typography
+ *   Dark:            deep navy canvas, slate surfaces, mist typography
  */
 
-/* ── Google Fonts (loaded via next/font — this is a fallback reference) ── */
+/* ── Google Fonts ── */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
 
-/* ── Dark theme CSS custom properties ────────────────────────────────────── */
-[data-mantine-color-scheme="dark"] {
-  --cl-bg: #0A1118;
-  --cl-bg-subtle: #0E1721;
-  --cl-surface: #131D2A;
-  --cl-surface-alt: #1A2636;
-  --cl-surface-raised: #223145;
-  --cl-border: #2B3B52;
-  --cl-border-strong: #3D5475;
-  --cl-brand: #2D9CDB;
-  --cl-brand-soft: #186A9B;
-  --cl-brand-glow: #56CCF2;
-  --cl-text-primary: #F0F6FC;
-  --cl-text-secondary: #B1C5D8;
-  --cl-text-muted: #768EAB;
-  --cl-success: #34D399;
-  --cl-success-soft: #064E3B;
-  --cl-warning: #FBBF24;
-  --cl-warning-soft: #431407;
-  --cl-error: #F87171;
-  --cl-error-soft: #450A0A;
-  --cl-info: #60A5FA;
-  --cl-info-soft: #1E3A5F;
-  --cl-overlay: rgba(10, 17, 24, 0.85);
+/* ── Light theme: Pearl + Cobalt ─────────────────────────────────────────── */
+[data-mantine-color-scheme="light"] {
+  --cl-bg:              #F7F6F3;
+  --cl-bg-subtle:       #F0EDE8;
+  --cl-surface:         #FFFFFF;
+  --cl-surface-alt:     #F8FAFC;
+  --cl-surface-raised:  #F2F5FA;
+  --cl-border:          #E6EAF0;
+  --cl-border-strong:   #D8DEE8;
+
+  /* Ink Teal — primary action (precise, commerce-grade, distinctive) */
+  --cl-brand:           #0C7A8A;
+  --cl-brand-soft:      #E6F6F9;
+  --cl-brand-glow:      #0A6878;
+
+  /* Amber — editorial support only */
+  --cl-accent-gold:     #B88343;
+  --cl-accent-gold-soft:#FAF1E6;
+
+  /* Iris — secondary insight accent */
+  --cl-accent-iris:     #7569E6;
+  --cl-accent-iris-soft:#F0EEFF;
+
+  --cl-text-primary:    #142033;
+  --cl-text-secondary:  #617084;
+  --cl-text-muted:      #8B96A6;
+
+  /* Mint — status/success only */
+  --cl-success:         #12936F;
+  --cl-success-soft:    #EAF8F2;
+
+  --cl-warning:         #B87A2A;
+  --cl-warning-soft:    #FFF3E0;
+  --cl-error:           #C94D4D;
+  --cl-error-soft:      #FFF1F1;
+  --cl-info:            #0C7A8A;
+  --cl-info-soft:       #E6F6F9;
+
+  /* Dark band for trust/contrast sections */
+  --cl-inverse-bg:      #0A1B20;
+  --cl-inverse-surface: #102530;
+  --cl-inverse-text:    #F0F7F9;
+  --cl-inverse-muted:   #94AEBA;
+
+  --cl-overlay:         rgba(10, 20, 28, 0.4);
 }
 
-/* ── Light theme CSS custom properties ───────────────────────────────────── */
-[data-mantine-color-scheme="light"] {
-  --cl-bg: #F8FAFC;
-  --cl-bg-subtle: #F1F5F9;
-  --cl-surface: #FFFFFF;
-  --cl-surface-alt: #E2E8F0;
-  --cl-surface-raised: #CBD5E1;
-  --cl-border: #CBD5E1;
-  --cl-border-strong: #94A3B8;
-  --cl-brand: #2D9CDB;
-  --cl-brand-soft: #E0F2FE;
-  --cl-brand-glow: #0A7EBD;
-  --cl-text-primary: #0F172A;
-  --cl-text-secondary: #475569;
-  --cl-text-muted: #64748B;
-  --cl-success: #059669;
-  --cl-success-soft: #D1FAE5;
-  --cl-warning: #D97706;
-  --cl-warning-soft: #FEF3C7;
-  --cl-error: #DC2626;
-  --cl-error-soft: #FEE2E2;
-  --cl-info: #2563EB;
-  --cl-info-soft: #DBEAFE;
-  --cl-overlay: rgba(15, 23, 42, 0.6);
+/* ── Dark theme: Ink / Deep Navy ─────────────────────────────────────────── */
+[data-mantine-color-scheme="dark"] {
+  --cl-bg:              #0A0F15;
+  --cl-bg-subtle:       #0E1520;
+  --cl-surface:         #101721;
+  --cl-surface-alt:     #121B26;
+  --cl-surface-raised:  #15202E;
+  --cl-border:          #1E2A38;
+  --cl-border-strong:   #283548;
+
+  /* Ink Teal — primary action */
+  --cl-brand:           #1FC8DC;
+  --cl-brand-soft:      #0C2D35;
+  --cl-brand-glow:      #18B3C6;
+
+  /* Amber — editorial support only */
+  --cl-accent-gold:     #D4A055;
+  --cl-accent-gold-soft:#2E2010;
+
+  /* Iris */
+  --cl-accent-iris:     #A091FF;
+  --cl-accent-iris-soft:#241F3E;
+
+  --cl-text-primary:    #EEF4F7;
+  --cl-text-secondary:  #90A4AE;
+  --cl-text-muted:      #607080;
+
+  /* Mint — status/success only */
+  --cl-success:         #22C98A;
+  --cl-success-soft:    #0A2E20;
+
+  --cl-warning:         #D4A055;
+  --cl-warning-soft:    #2E2010;
+  --cl-error:           #F87171;
+  --cl-error-soft:      #3D1515;
+  --cl-info:            #1FC8DC;
+  --cl-info-soft:       #0C2D35;
+
+  /* Contrast band */
+  --cl-inverse-bg:      #06111A;
+  --cl-inverse-surface: #0C1E2A;
+  --cl-inverse-text:    #EEF4F7;
+  --cl-inverse-muted:   #90A4AE;
+
+  --cl-overlay:         rgba(4, 10, 18, 0.75);
+}
+
+/* ── Serif accent font utility (use sparingly: hero, 1 section, CTA) ───── */
+.serif-accent {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
 }
 
 /* ── Base resets ─────────────────────────────────────────────────────────── */
@@ -99,16 +146,17 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
+  font-size: 16px;
 }
 
-/* ── Focus ring ──────────────────────────────────────────────────────────── */
+/* ── Focus ring (juniper) ────────────────────────────────────────────────── */
 :focus-visible {
   outline: 2px solid var(--cl-brand);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* ── Scrollbar (webkit) ───────────────────────────────────────────────────  */
+/* ── Scrollbar (webkit) ──────────────────────────────────────────────────  */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -119,16 +167,233 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--cl-border);
+  background: var(--cl-border-strong);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--cl-border-strong);
+  background: var(--cl-text-muted);
 }
 
-/* ── Selection ────────────────────────────────────────────────────────────  */
+/* ── Selection ───────────────────────────────────────────────────────────  */
 ::selection {
-  background: rgba(45, 156, 219, 0.3);
+  background: rgba(29, 122, 103, 0.15);
   color: var(--cl-text-primary);
+}
+
+/* ── Auth layout tokens ──────────────────────────────────────────────────  */
+/*    Large rounded shell: form LEFT (white) · hero panel RIGHT (teal/ink).   */
+/*    Logo lives inside the form panel. No separate page chrome.              */
+[data-mantine-color-scheme="light"] {
+  --cl-auth-page-bg:    #ECEEF2;   /* outer page canvas behind shell  */
+  --cl-auth-form-bg:    #FFFFFF;   /* left form panel                 */
+  --cl-auth-divider:    #E0E5EE;   /* border between panels           */
+  --cl-auth-text:       #142033;
+  --cl-auth-muted:      #617084;
+  --cl-auth-glow:       rgba(12, 122, 138, 0.07);
+  --cl-auth-arc:        rgba(12, 122, 138, 0.05);
+
+  /* Right hero panel — solid brand teal */
+  --cl-auth-hero-bg:    #0C7A8A;
+  --cl-auth-hero-deep:  #085F6E;
+  --cl-auth-hero-text:  #FFFFFF;
+  --cl-auth-hero-sub:   rgba(255, 255, 255, 0.68);
+  --cl-auth-hero-card:  rgba(255, 255, 255, 0.96);
+  --cl-auth-hero-rim:   rgba(255, 255, 255, 0.18);
+  --cl-auth-hero-glow:  rgba(255, 255, 255, 0.06);
+}
+
+[data-mantine-color-scheme="dark"] {
+  --cl-auth-page-bg:    #060C12;   /* outer page canvas               */
+  --cl-auth-form-bg:    #0C1420;   /* left form panel                 */
+  --cl-auth-divider:    #182636;   /* border between panels           */
+  --cl-auth-text:       #EEF4F7;
+  --cl-auth-muted:      #8EA4B2;
+  --cl-auth-glow:       rgba(31, 200, 220, 0.06);
+  --cl-auth-arc:        rgba(31, 200, 220, 0.04);
+
+  /* Right hero panel — deep ink with teal identity */
+  --cl-auth-hero-bg:    #060E18;
+  --cl-auth-hero-deep:  #030810;
+  --cl-auth-hero-text:  #EEF4F7;
+  --cl-auth-hero-sub:   #8EA4B2;
+  --cl-auth-hero-card:  #0E1A28;
+  --cl-auth-hero-rim:   rgba(31, 200, 220, 0.14);
+  --cl-auth-hero-glow:  rgba(31, 200, 220, 0.05);
+}
+
+/* ── Motion tokens ───────────────────────────────────────────────────────  */
+:root {
+  --motion-fast:   140ms;
+  --motion-base:   220ms;
+  --motion-slow:   420ms;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Keyframes ───────────────────────────────────────────────────────────  */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes reveal-up-sm {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes reveal-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes drift-float {
+  0%, 100% { transform: translateY(0px);   }
+  50%       { transform: translateY(-4px);  }
+}
+
+@keyframes spotlight-shift {
+  0%   { transform: translate(0px,   0px);   }
+  33%  { transform: translate(18px, -10px);  }
+  66%  { transform: translate(-8px,  14px);  }
+  100% { transform: translate(0px,   0px);   }
+}
+
+@keyframes line-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes underline-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1);    opacity: 0.6; }
+  100% { transform: scale(1.6);  opacity: 0;   }
+}
+
+/* ── Scroll-reveal utility ────────────────────────────────────────────────  */
+.cl-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity  var(--motion-slow) var(--ease-emphasis),
+    transform var(--motion-slow) var(--ease-emphasis);
+}
+
+.cl-reveal.cl-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger delays for sibling cards */
+.cl-reveal:nth-child(1) { transition-delay: 0ms;  }
+.cl-reveal:nth-child(2) { transition-delay: 60ms; }
+.cl-reveal:nth-child(3) { transition-delay: 120ms;}
+.cl-reveal:nth-child(4) { transition-delay: 180ms;}
+.cl-reveal:nth-child(5) { transition-delay: 240ms;}
+.cl-reveal:nth-child(6) { transition-delay: 300ms;}
+
+/* ── Ambient drift (approval card, spotlight) ────────────────────────────  */
+.cl-drift {
+  animation: drift-float 9s var(--ease-standard) infinite;
+}
+
+/* ── Connector line grow-in ──────────────────────────────────────────────  */
+.cl-line-grow {
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.6s var(--ease-emphasis);
+}
+
+.cl-line-grow.cl-revealed {
+  transform: scaleX(1);
+}
+
+/* ── Nav link hover underline ────────────────────────────────────────────  */
+.cl-nav-link {
+  position: relative;
+}
+
+.cl-nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  right: 50%;
+  height: 2px;
+  background: var(--cl-brand);
+  border-radius: 1px;
+  transition: left var(--motion-base) var(--ease-standard),
+              right var(--motion-base) var(--ease-standard);
+}
+
+.cl-nav-link:hover::after,
+.cl-nav-link[data-active]::after {
+  left: 0;
+  right: 0;
+}
+
+/* ── Footer link underline ───────────────────────────────────────────────  */
+.cl-footer-link {
+  position: relative;
+  display: inline-block;
+}
+
+.cl-footer-link::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--motion-base) var(--ease-standard);
+}
+
+.cl-footer-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* ── Card lift ───────────────────────────────────────────────────────────  */
+.cl-card-lift {
+  transition:
+    transform  var(--motion-base) var(--ease-emphasis),
+    box-shadow var(--motion-base) var(--ease-emphasis),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+
+.cl-card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Icon tile scale ─────────────────────────────────────────────────────  */
+.cl-icon-tile {
+  transition: transform var(--motion-fast) var(--ease-emphasis);
+}
+
+.cl-card-lift:hover .cl-icon-tile {
+  transform: scale(1.04);
+}
+
+/* ── Button lift ─────────────────────────────────────────────────────────  */
+.cl-btn-lift {
+  transition:
+    transform  var(--motion-fast) var(--ease-emphasis),
+    box-shadow var(--motion-fast) var(--ease-emphasis) !important;
+}
+
+.cl-btn-lift:hover  { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+.cl-btn-lift:active { transform: scale(0.985);     box-shadow: none; }
+
+/* ── Auth input focus ring ───────────────────────────────────────────────  */
+.mantine-TextInput-input:focus,
+.mantine-PasswordInput-input:focus-within {
+  border-color: var(--cl-brand) !important;
+  outline: none;
 }

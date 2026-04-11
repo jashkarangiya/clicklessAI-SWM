@@ -23,11 +23,10 @@ export function LogoMark({ size = 32, className, animated = true }: LogoMarkProp
     setMounted(true);
   }, []);
 
-  // Default to dark theme logo to avoid hydration mismatch flashes, then switch once mounted if needed
-  const isDark = !mounted || colorScheme === 'dark';
+  // Default to light theme logo to match light-first design, then switch once mounted if needed
+  const isDark = mounted && colorScheme === 'dark';
   
-  // logo-1-cropped.png is the silver/lighter 3D render
-  // logo-2-cropped.png is the dark/blue 3D render
+  // logo_black.png for dark backgrounds, logo_white.png for light backgrounds
   const logoSrc = isDark ? '/logo_black.png' : '/logo_white.png';
 
   return (

@@ -1,17 +1,35 @@
 'use client';
 /**
  * ClickLess AI – Chat Empty State
+ *
+ * Top-aligned, task-oriented empty state. Guides users into shopping actions
+ * rather than just showing a centered logo.
  */
 import { useState } from 'react';
-import { Stack, Text, Box, Button, SimpleGrid } from '@mantine/core';
-import { IconSearch, IconShoppingCart, IconStar, IconBolt } from '@tabler/icons-react';
-import { BrandLockup } from '@/components/branding/BrandLockup';
+import { Stack, Text, Box, SimpleGrid, UnstyledButton } from '@mantine/core';
+import { IconSparkles, IconScale, IconRefresh, IconPackage } from '@tabler/icons-react';
 
 const SUGGESTIONS = [
-  { icon: <IconSearch size={16} />, text: 'Find noise-canceling headphones under $300' },
-  { icon: <IconShoppingCart size={16} />, text: 'Buy the best 4K TV on sale right now' },
-  { icon: <IconStar size={16} />, text: 'Compare top laptops for video editing' },
-  { icon: <IconBolt size={16} />, text: 'Get me the fastest delivery Amazon laptop' },
+  {
+    icon: <IconSparkles size={20} />,
+    title: 'Find the best deal',
+    text: 'Find noise-canceling headphones under $300',
+  },
+  {
+    icon: <IconScale size={20} />,
+    title: 'Compare two options',
+    text: 'Compare top laptops for video editing',
+  },
+  {
+    icon: <IconRefresh size={20} />,
+    title: 'Reorder something familiar',
+    text: 'Buy the best 4K TV on sale right now',
+  },
+  {
+    icon: <IconPackage size={20} />,
+    title: 'Track an order',
+    text: 'Get me the fastest delivery Amazon laptop',
+  },
 ];
 
 interface ChatEmptyStateProps {
@@ -24,79 +42,104 @@ export function ChatEmptyState({ onSuggestion }: ChatEmptyStateProps) {
       style={{
         flex: 1,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '2rem',
+        padding: '80px 2rem 2rem',
       }}
     >
-      <Stack align="center" gap="xl" style={{ maxWidth: 560, textAlign: 'center' }}>
-        <BrandLockup size="xl" variant="stacked" />
-
+      <Stack gap="xl" style={{ maxWidth: 640, width: '100%' }}>
+        {/* Heading */}
         <Stack gap="xs">
           <Text
-            style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--cl-text-primary)', lineHeight: 1.3 }}
+            style={{
+              fontSize: '1.75rem', fontWeight: 700,
+              color: 'var(--cl-text-primary)', lineHeight: 1.2,
+              letterSpacing: '-0.02em',
+            }}
           >
-            What can I find for you today?
+            What do you want to find today?
           </Text>
-          <Text size="sm" style={{ color: 'var(--cl-text-secondary)', lineHeight: 1.7 }}>
-            Tell me what you&apos;re looking for. I&apos;ll search Amazon and Walmart,
-            compare results, and only place an order after you confirm every detail.
+          <Text size="md" style={{ color: 'var(--cl-text-secondary)', lineHeight: 1.65, maxWidth: 520 }}>
+            Describe the product, budget, delivery timing, or retailer preference.
+            ClickLess will compare options and only act when you approve.
           </Text>
         </Stack>
 
-        <Box
-          style={{
-            backgroundColor: 'var(--cl-surface)',
-            border: '1px solid var(--cl-border)',
-            borderRadius: 12,
-            padding: '4px',
-            width: '100%',
-          }}
-        >
-          <Text size="xs" style={{ color: 'var(--cl-text-muted)', padding: '8px 12px 4px', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Try asking
+        {/* Quick action cards */}
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+          {SUGGESTIONS.map((s) => (
+            <QuickActionCard
+              key={s.title}
+              icon={s.icon}
+              title={s.title}
+              text={s.text}
+              onClick={() => onSuggestion(s.text)}
+            />
+          ))}
+        </SimpleGrid>
+
+        {/* Trust line */}
+        <Box style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Box
+            style={{
+              width: 6, height: 6, borderRadius: '50%',
+              backgroundColor: 'var(--cl-success)',
+              flexShrink: 0,
+            }}
+          />
+          <Text size="sm" style={{ color: 'var(--cl-text-muted)' }}>
+            Purchases always require your confirmation
           </Text>
-          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs" style={{ padding: '0 4px 4px' }}>
-            {SUGGESTIONS.map((s) => (
-              <SuggestionButton
-                key={s.text}
-                icon={s.icon}
-                text={s.text}
-                onClick={() => onSuggestion(s.text)}
-              />
-            ))}
-          </SimpleGrid>
         </Box>
       </Stack>
     </Box>
   );
 }
 
-function SuggestionButton({ icon, text, onClick }: { icon: React.ReactNode; text: string; onClick: () => void }) {
+function QuickActionCard({
+  icon, title, text, onClick,
+}: {
+  icon: React.ReactNode; title: string; text: string; onClick: () => void;
+}) {
   const [hovered, setHovered] = useState(false);
   return (
-    <Button
-      variant="subtle"
-      leftSection={icon}
+    <UnstyledButton
       onClick={onClick}
-      size="sm"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        justifyContent: 'flex-start',
-        color: 'var(--cl-text-secondary)',
-        textAlign: 'left',
-        height: 'auto',
-        padding: '8px 12px',
-        lineHeight: 1.4,
-        border: '1px solid',
-        borderColor: hovered ? 'var(--cl-border)' : 'transparent',
-        backgroundColor: hovered ? 'var(--cl-surface-alt)' : 'transparent',
-        borderRadius: 8,
+        padding: '20px',
+        borderRadius: 16,
+        backgroundColor: hovered ? 'var(--cl-surface)' : 'var(--cl-surface)',
+        border: `1px solid ${hovered ? 'var(--cl-brand)' : 'var(--cl-border)'}`,
+        boxShadow: hovered ? '0 4px 12px rgba(47, 99, 245, 0.08)' : '0 1px 3px rgba(0,0,0,0.02)',
+        transition: 'all 0.2s ease',
+        transform: hovered ? 'translateY(-1px)' : 'none',
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
       }}
-      styles={{ label: { whiteSpace: 'normal', textAlign: 'left', flex: 1 } }}
     >
-      {text}
-    </Button>
+      <Box
+        style={{
+          width: 36, height: 36, borderRadius: 10,
+          backgroundColor: hovered ? 'var(--cl-brand-soft)' : 'var(--cl-surface-raised)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: hovered ? 'var(--cl-brand)' : 'var(--cl-text-muted)',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        {icon}
+      </Box>
+      <Box>
+        <Text size="sm" fw={600} style={{ color: 'var(--cl-text-primary)', marginBottom: 2 }}>
+          {title}
+        </Text>
+        <Text size="xs" style={{ color: 'var(--cl-text-muted)', lineHeight: 1.5 }}>
+          {text}
+        </Text>
+      </Box>
+    </UnstyledButton>
   );
 }

@@ -3,13 +3,22 @@
  *
  * All default component styles and custom variants live here.
  * Uses Mantine 8's `createTheme` components API.
+ *
+ * Design direction: pill buttons, large rounded inputs, calm badges,
+ * editorial spacing, commerce-grade trust.
  */
 import { MantineThemeOverride } from '@mantine/core';
 
 export const componentOverrides: MantineThemeOverride['components'] = {
     Button: {
         defaultProps: {
-            radius: 'md',
+            radius: 9999,
+        },
+        styles: {
+            root: {
+                fontWeight: 600,
+                transition: 'all 0.15s ease',
+            },
         },
         vars: (theme: any, props: { variant: string; }) => {
             if (props.variant === 'brand') {
@@ -19,6 +28,7 @@ export const componentOverrides: MantineThemeOverride['components'] = {
                         '--button-color': '#fff',
                         '--button-hover': 'var(--cl-brand-glow)',
                         '--button-bd': 'none',
+                        '--button-hover-color': '#fff',
                     },
                 };
             }
@@ -35,9 +45,9 @@ export const componentOverrides: MantineThemeOverride['components'] = {
             if (props.variant === 'surface') {
                 return {
                     root: {
-                        '--button-bg': 'var(--cl-surface-raised)',
+                        '--button-bg': 'var(--cl-surface)',
                         '--button-color': 'var(--cl-text-primary)',
-                        '--button-hover': 'var(--cl-surface-alt)',
+                        '--button-hover': 'var(--cl-surface-raised)',
                         '--button-bd': '1px solid var(--cl-border)',
                     },
                 };
@@ -48,6 +58,7 @@ export const componentOverrides: MantineThemeOverride['components'] = {
                         '--button-bg': 'var(--cl-error-soft)',
                         '--button-color': 'var(--cl-error)',
                         '--button-hover': 'var(--cl-error)',
+                        '--button-hover-color': '#fff',
                         '--button-bd': '1px solid var(--cl-error)',
                     },
                 };
@@ -58,23 +69,28 @@ export const componentOverrides: MantineThemeOverride['components'] = {
 
     Paper: {
         defaultProps: {
-            radius: 'md',
-            p: 'md',
+            radius: 'lg',
+            p: 'lg',
         },
     },
 
     Card: {
         defaultProps: {
-            radius: 'md',
-            padding: 'md',
+            radius: 'lg',
+            padding: 'lg',
+        },
+        styles: {
+            root: {
+                border: '1px solid var(--cl-border)',
+            },
         },
     },
 
     Modal: {
         defaultProps: {
-            radius: 'lg',
+            radius: 'xl',
             centered: true,
-            overlayProps: { blur: 4 },
+            overlayProps: { blur: 6, backgroundOpacity: 0.25 },
         },
         styles: {
             header: {
@@ -84,32 +100,65 @@ export const componentOverrides: MantineThemeOverride['components'] = {
             title: {
                 fontWeight: 600,
                 fontSize: 'var(--mantine-font-size-lg)',
+                color: 'var(--cl-text-primary)',
+            },
+            content: {
+                backgroundColor: 'var(--cl-surface)',
             },
         },
     },
 
     TextInput: {
         defaultProps: {
-            radius: 'md',
+            radius: 8,
+            size: 'md',
         },
         styles: {
             input: {
-                backgroundColor: 'var(--cl-surface)',
-                borderColor: 'var(--cl-border)',
-                color: 'var(--cl-text-primary)',
+                backgroundColor: '#FFFFFF',
+                borderColor: '#D9DEE6',
+                borderWidth: 1,
+                color: '#142033',
+                height: 44,
+                fontSize: '0.9rem',
+                paddingLeft: 14,
+                paddingRight: 14,
+                transition: 'border-color 140ms ease',
+            },
+            label: {
+                color: '#4A5568',
+                fontWeight: 500,
+                fontSize: '0.82rem',
+                marginBottom: 5,
             },
         },
     },
 
     PasswordInput: {
         defaultProps: {
-            radius: 'md',
+            radius: 8,
+            size: 'md',
         },
         styles: {
             input: {
-                backgroundColor: 'var(--cl-surface)',
-                borderColor: 'var(--cl-border)',
-                color: 'var(--cl-text-primary)',
+                backgroundColor: '#FFFFFF',
+                borderColor: '#D9DEE6',
+                borderWidth: 1,
+                color: '#142033',
+                height: 44,
+                fontSize: '0.9rem',
+                paddingLeft: 14,
+                transition: 'border-color 140ms ease',
+            },
+            innerInput: {
+                height: 44,
+                fontSize: '0.9rem',
+            },
+            label: {
+                color: '#4A5568',
+                fontWeight: 500,
+                fontSize: '0.82rem',
+                marginBottom: 5,
             },
         },
     },
@@ -123,13 +172,20 @@ export const componentOverrides: MantineThemeOverride['components'] = {
                 backgroundColor: 'var(--cl-surface)',
                 borderColor: 'var(--cl-border)',
                 color: 'var(--cl-text-primary)',
+                height: 48,
+            },
+            label: {
+                color: 'var(--cl-text-primary)',
+                fontWeight: 500,
+                marginBottom: 6,
             },
         },
     },
 
     Badge: {
         defaultProps: {
-            radius: 'sm',
+            radius: 9999,
+            tt: 'none',
         },
         vars: (theme: any, props: { variant: string; }) => {
             if (props.variant === 'brand') {
@@ -137,7 +193,7 @@ export const componentOverrides: MantineThemeOverride['components'] = {
                     root: {
                         '--badge-bg': 'var(--cl-brand-soft)',
                         '--badge-color': 'var(--cl-brand)',
-                        '--badge-bd': '1px solid var(--cl-brand)',
+                        '--badge-bd': 'none',
                     },
                 };
             }
@@ -182,6 +238,7 @@ export const componentOverrides: MantineThemeOverride['components'] = {
         styles: {
             tab: {
                 color: 'var(--cl-text-secondary)',
+                fontWeight: 500,
                 '&[dataActive]': {
                     color: 'var(--cl-brand)',
                     borderBottomColor: 'var(--cl-brand)',
@@ -200,9 +257,8 @@ export const componentOverrides: MantineThemeOverride['components'] = {
         },
         styles: {
             tooltip: {
-                backgroundColor: 'var(--cl-surface-raised)',
-                color: 'var(--cl-text-primary)',
-                border: '1px solid var(--cl-border)',
+                backgroundColor: 'var(--cl-text-primary)',
+                color: '#fff',
                 fontSize: '0.8rem',
             },
         },
@@ -210,17 +266,17 @@ export const componentOverrides: MantineThemeOverride['components'] = {
 
     Alert: {
         defaultProps: {
-            radius: 'md',
+            radius: 'lg',
         },
     },
 
     Notification: {
         defaultProps: {
-            radius: 'md',
+            radius: 'lg',
         },
         styles: {
             root: {
-                backgroundColor: 'var(--cl-surface-raised)',
+                backgroundColor: 'var(--cl-surface)',
                 border: '1px solid var(--cl-border)',
             },
             title: {
@@ -228,6 +284,92 @@ export const componentOverrides: MantineThemeOverride['components'] = {
             },
             description: {
                 color: 'var(--cl-text-secondary)',
+            },
+        },
+    },
+
+    NumberInput: {
+        defaultProps: {
+            radius: 'md',
+        },
+        styles: {
+            input: {
+                backgroundColor: 'var(--cl-surface)',
+                borderColor: 'var(--cl-border)',
+                color: 'var(--cl-text-primary)',
+                height: 48,
+            },
+            label: {
+                color: 'var(--cl-text-primary)',
+                fontWeight: 500,
+                marginBottom: 6,
+            },
+        },
+    },
+
+    TagsInput: {
+        defaultProps: {
+            radius: 'md',
+        },
+        styles: {
+            input: {
+                backgroundColor: 'var(--cl-surface)',
+                borderColor: 'var(--cl-border)',
+            },
+            label: {
+                color: 'var(--cl-text-primary)',
+                fontWeight: 500,
+                marginBottom: 6,
+            },
+        },
+    },
+
+    Switch: {
+        styles: {
+            label: {
+                color: 'var(--cl-text-primary)',
+            },
+        },
+    },
+
+    Checkbox: {
+        styles: {
+            label: {
+                color: 'var(--cl-text-secondary)',
+                cursor: 'pointer',
+            },
+        },
+    },
+
+    Slider: {
+        styles: {
+            track: {
+                backgroundColor: 'var(--cl-border)',
+            },
+        },
+    },
+
+    SegmentedControl: {
+        defaultProps: {
+            radius: 9999,
+        },
+        styles: {
+            root: {
+                backgroundColor: 'var(--cl-surface-raised)',
+                border: '1px solid var(--cl-border)',
+                padding: 3,
+            },
+            indicator: {
+                backgroundColor: 'var(--cl-surface)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                borderRadius: 9999,
+            },
+            label: {
+                color: 'var(--cl-text-secondary)',
+                fontWeight: 500,
+                '&[data-active]': {
+                    color: 'var(--cl-text-primary)',
+                },
             },
         },
     },

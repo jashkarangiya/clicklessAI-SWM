@@ -2,17 +2,18 @@
 /**
  * ClickLess AI – Settings Page
  *
- * Tabs: Connections | Preferences | History | Danger Zone
+ * SegmentedControl navigation: Connections | Preferences | Activity | Security
+ * Destructive actions moved under Security.
  */
+import { useState } from 'react';
 import {
-  Box, Tabs, Text, Stack, Divider, Button, Group,
+  Box, SegmentedControl, Text, Stack, Divider, Button, Group,
   Badge, Slider, Switch, TagsInput, NumberInput, Select,
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import {
-  IconPlugConnected, IconAdjustments, IconHistory, IconAlertTriangle,
+  IconPlugConnected, IconAdjustments, IconHistory, IconShieldLock,
 } from '@tabler/icons-react';
 import { SiteConnectionCard } from '@/components/settings/SiteConnectionCard';
 import { PurchaseHistoryList } from '@/components/settings/PurchaseHistoryList';
@@ -22,13 +23,13 @@ import { setSiteConnections, setAmazonSessionDetails } from '@/store/slices/sess
 import { usePreferencesStore } from '@/stores/preferencesStore';
 import { useChatStore } from '@/stores/chatStore';
 import { MOCK_ORDERS, MOCK_PREFERENCES } from '@/lib/mocks/fixtures';
-import { useState } from 'react';
 
 export default function SettingsPage() {
   const dispatch = useAppDispatch();
   const siteConns = useAppSelector((state) => state.session.siteConnections);
   const amazonSessionDetails = useAppSelector((state) => state.session.amazonSessionDetails);
 
+  const [activeTab, setActiveTab] = useState('connections');
   const [amazonModalOpen, setAmazonModalOpen] = useState(false);
   const preferences = usePreferencesStore((s) => s.preferences);
   const setExplicit = usePreferencesStore((s) => s.setExplicit);
@@ -87,17 +88,18 @@ export default function SettingsPage() {
   return (
     <Box
       style={{
-        height: 'calc(100vh - 80px)',
+        height: 'calc(100vh - 64px)',
         display: 'flex',
         flexDirection: 'column',
-        padding: '24px',
-        maxWidth: 720,
+        padding: '32px',
+        maxWidth: 800,
         margin: '0 auto',
         overflow: 'hidden',
       }}
     >
-      <Stack gap="sm" style={{ marginBottom: 24 }}>
-        <Text component="h1" style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--cl-text-primary)', margin: 0 }}>
+      {/* Page header */}
+      <Stack gap="sm" style={{ marginBottom: 28 }}>
+        <Text component="h1" style={{ fontSize: '1.625rem', fontWeight: 700, color: 'var(--cl-text-primary)', margin: 0, letterSpacing: '-0.01em' }}>
           Settings
         </Text>
         <Text size="sm" style={{ color: 'var(--cl-text-secondary)' }}>
@@ -105,23 +107,25 @@ export default function SettingsPage() {
         </Text>
       </Stack>
 
-      <Tabs defaultValue="connections"
-        color="brand"
-        style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
-        styles={{
-          list: { borderBottomColor: 'var(--cl-border)', flexShrink: 0, marginBottom: 24 },
-          panel: { overflowY: 'auto', flex: 1, paddingBottom: 40, paddingRight: 8 }
-        }}
-      >
-        <Tabs.List>
-          <Tabs.Tab value="connections" leftSection={<IconPlugConnected size={15} />}>Connections</Tabs.Tab>
-          <Tabs.Tab value="preferences" leftSection={<IconAdjustments size={15} />}>Preferences</Tabs.Tab>
-          <Tabs.Tab value="history" leftSection={<IconHistory size={15} />}>History</Tabs.Tab>
-          <Tabs.Tab value="danger" leftSection={<IconAlertTriangle size={15} />}>Danger Zone</Tabs.Tab>
-        </Tabs.List>
+      {/* Segmented navigation */}
+      <Box style={{ marginBottom: 32 }}>
+        <SegmentedControl
+          value={activeTab}
+          onChange={setActiveTab}
+          fullWidth
+          data={[
+            { value: 'connections', label: 'Connections' },
+            { value: 'preferences', label: 'Preferences' },
+            { value: 'activity', label: 'Activity' },
+            { value: 'security', label: 'Security' },
+          ]}
+        />
+      </Box>
 
+      {/* Tab content */}
+      <Box style={{ flex: 1, overflowY: 'auto', paddingBottom: 40 }}>
         {/* ── Connections ── */}
-        <Tabs.Panel value="connections" pt="md">
+        {activeTab === 'connections' && (
           <Stack gap="md">
             <SiteConnectionCard
               site="Amazon"
@@ -136,19 +140,34 @@ export default function SettingsPage() {
               onConnect={() => handleConnect('walmart')}
               onDisconnect={() => handleDisconnect('walmart')}
             />
-            <Text size="xs" style={{ color: 'var(--cl-text-muted)' }}>
-              Connecting your accounts allows ClickLess AI to search and checkout on your behalf.
-              Your credentials are never stored — only session tokens are used.
-            </Text>
+
+            {/* Trust info card */}
+            <Box
+              style={{
+                backgroundColor: 'var(--cl-info-soft)',
+                borderRadius: 16,
+                padding: '16px 20px',
+                border: '1px solid rgba(124, 107, 255, 0.1)',
+              }}
+            >
+              <Text size="sm" fw={600} style={{ color: 'var(--cl-info)', marginBottom: 4 }}>
+                How connections work
+              </Text>
+              <Text size="xs" style={{ color: 'var(--cl-text-secondary)', lineHeight: 1.6 }}>
+                Connecting your accounts allows ClickLess AI to search and checkout on your behalf.
+                Your credentials are never stored — only secure session tokens are used.
+                Sessions expire automatically for your security.
+              </Text>
+            </Box>
           </Stack>
-        </Tabs.Panel>
+        )}
 
         {/* ── Preferences ── */}
-        <Tabs.Panel value="preferences" pt="lg">
+        {activeTab === 'preferences' && (
           <Stack gap={40}>
             {/* Explicit preferences */}
             <Box>
-              <Text fw={600} size="sm" style={{ color: 'var(--cl-text-primary)', marginBottom: 20 }}>Explicit Preferences</Text>
+              <Text fw={600} size="sm" style={{ color: 'var(--cl-text-primary)', marginBottom: 20 }}>Your Preferences</Text>
               <Stack gap="lg">
                 <TagsInput
                   label="Preferred brands"
@@ -156,7 +175,6 @@ export default function SettingsPage() {
                   data={exp.preferred_brands}
                   value={exp.preferred_brands}
                   onChange={(v) => setExplicit({ preferred_brands: v })}
-                  styles={{ input: { backgroundColor: 'var(--cl-surface)', borderColor: 'var(--cl-border)' } }}
                 />
                 <TagsInput
                   label="Avoided brands"
@@ -164,7 +182,6 @@ export default function SettingsPage() {
                   data={exp.avoided_brands}
                   value={exp.avoided_brands}
                   onChange={(v) => setExplicit({ avoided_brands: v })}
-                  styles={{ input: { backgroundColor: 'var(--cl-surface)', borderColor: 'var(--cl-border)' } }}
                 />
                 <NumberInput
                   label="Default budget ($)"
@@ -173,7 +190,6 @@ export default function SettingsPage() {
                   onChange={(v) => setExplicit({ budget_default: typeof v === 'number' ? v : undefined })}
                   min={0}
                   prefix="$"
-                  styles={{ input: { backgroundColor: 'var(--cl-surface)', borderColor: 'var(--cl-border)' } }}
                 />
                 <Select
                   label="Delivery priority"
@@ -184,7 +200,6 @@ export default function SettingsPage() {
                   ]}
                   value={exp.delivery_priority ?? null}
                   onChange={(v) => setExplicit({ delivery_priority: v as 'standard' | 'fast' | 'fastest' })}
-                  styles={{ input: { backgroundColor: 'var(--cl-surface)', borderColor: 'var(--cl-border)' } }}
                 />
                 <Switch
                   label="Prefer eco-friendly products"
@@ -201,7 +216,7 @@ export default function SettingsPage() {
             <Box>
               <Text fw={600} size="sm" style={{ color: 'var(--cl-text-primary)', marginBottom: 4 }}>Learned Insights</Text>
               <Text size="xs" style={{ color: 'var(--cl-text-muted)', marginBottom: 12 }}>
-                Read-only — updated automatically based on your patterns.
+                Automatically updated based on your shopping patterns.
               </Text>
               <Box style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {[
@@ -210,7 +225,12 @@ export default function SettingsPage() {
                   { label: 'Decision speed', value: imp.decision_speed },
                   { label: 'Comparison depth', value: imp.comparison_depth },
                 ].filter((i) => i.value).map((i) => (
-                  <Box key={i.label} style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'var(--cl-surface-alt)', border: '1px solid var(--cl-border)', borderRadius: 20, padding: '4px 12px' }}>
+                  <Box key={i.label} style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    backgroundColor: 'var(--cl-surface)',
+                    border: '1px solid var(--cl-border)',
+                    borderRadius: 9999, padding: '6px 14px',
+                  }}>
                     <Text size="xs" style={{ color: 'var(--cl-text-muted)' }}>{i.label}:</Text>
                     <Text size="xs" fw={600} style={{ color: 'var(--cl-text-primary)' }}>{i.value}</Text>
                   </Box>
@@ -240,33 +260,64 @@ export default function SettingsPage() {
                       disabled
                       size="xs"
                       color="brand"
-                      styles={{ track: { backgroundColor: 'var(--cl-border)' } }}
                     />
                   </Box>
                 ))}
               </Stack>
             </Box>
           </Stack>
-        </Tabs.Panel>
+        )}
 
-        {/* ── History ── */}
-        <Tabs.Panel value="history" pt="md">
+        {/* ── Activity ── */}
+        {activeTab === 'activity' && (
           <PurchaseHistoryList orders={MOCK_ORDERS} />
-        </Tabs.Panel>
+        )}
 
-        {/* ── Danger Zone ── */}
-        <Tabs.Panel value="danger" pt="md">
-          <Stack gap="md">
+        {/* ── Security ── */}
+        {activeTab === 'security' && (
+          <Stack gap="lg">
+            {/* Security info */}
             <Box
               style={{
-                backgroundColor: 'var(--cl-error-soft)',
-                border: '1px solid var(--cl-error)',
-                borderRadius: 12,
-                padding: '20px',
+                backgroundColor: 'var(--cl-surface)',
+                border: '1px solid var(--cl-border)',
+                borderRadius: 20,
+                padding: '24px',
               }}
             >
-              <Text fw={700} size="sm" style={{ color: 'var(--cl-error)', marginBottom: 16 }}>
-                ⚠ Destructive Actions
+              <Text fw={600} size="sm" style={{ color: 'var(--cl-text-primary)', marginBottom: 12 }}>
+                Security & Privacy
+              </Text>
+              <Stack gap="sm">
+                {[
+                  'Your credentials are never stored by ClickLess',
+                  'Session tokens expire automatically',
+                  'Purchases always require your explicit confirmation',
+                  'Real-time connection and order visibility',
+                ].map((item) => (
+                  <Box key={item} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Box style={{
+                      width: 6, height: 6, borderRadius: '50%',
+                      backgroundColor: 'var(--cl-success)',
+                      flexShrink: 0,
+                    }} />
+                    <Text size="sm" style={{ color: 'var(--cl-text-secondary)' }}>{item}</Text>
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
+
+            {/* Destructive actions */}
+            <Box
+              style={{
+                backgroundColor: 'var(--cl-surface)',
+                border: '1px solid var(--cl-border)',
+                borderRadius: 20,
+                padding: '24px',
+              }}
+            >
+              <Text fw={600} size="sm" style={{ color: 'var(--cl-text-primary)', marginBottom: 20 }}>
+                Account Actions
               </Text>
               <Stack gap="md">
                 <Group justify="space-between" align="flex-start">
@@ -274,7 +325,13 @@ export default function SettingsPage() {
                     <Text size="sm" fw={600} style={{ color: 'var(--cl-text-primary)' }}>Clear chat history</Text>
                     <Text size="xs" style={{ color: 'var(--cl-text-muted)' }}>Removes all messages from your current session.</Text>
                   </Box>
-                  <Button size="xs" onClick={handleClearHistory} style={{ backgroundColor: 'var(--cl-error-soft)', color: 'var(--cl-error)', border: '1px solid var(--cl-error)', flexShrink: 0 }}>
+                  <Button
+                    size="xs"
+                    variant="danger"
+                    onClick={handleClearHistory}
+                    radius={9999}
+                    style={{ flexShrink: 0 }}
+                  >
                     Clear history
                   </Button>
                 </Group>
@@ -284,15 +341,21 @@ export default function SettingsPage() {
                     <Text size="sm" fw={600} style={{ color: 'var(--cl-text-primary)' }}>Reset preferences</Text>
                     <Text size="xs" style={{ color: 'var(--cl-text-muted)' }}>Resets all your learned and explicit preferences to defaults.</Text>
                   </Box>
-                  <Button size="xs" onClick={handleResetPrefs} style={{ backgroundColor: 'var(--cl-error-soft)', color: 'var(--cl-error)', border: '1px solid var(--cl-error)', flexShrink: 0 }}>
+                  <Button
+                    size="xs"
+                    variant="danger"
+                    onClick={handleResetPrefs}
+                    radius={9999}
+                    style={{ flexShrink: 0 }}
+                  >
                     Reset preferences
                   </Button>
                 </Group>
               </Stack>
             </Box>
           </Stack>
-        </Tabs.Panel>
-      </Tabs>
+        )}
+      </Box>
 
       <AmazonConnectionModal
         opened={amazonModalOpen}

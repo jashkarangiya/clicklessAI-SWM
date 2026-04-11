@@ -1,10 +1,12 @@
 'use client';
 /**
  * ClickLess AI – Chat Input
+ *
+ * Premium composer dock with instructive placeholder and trust microcopy.
  * Enter sends, Shift+Enter = newline
  */
 import { useRef, useState, useCallback, KeyboardEvent } from 'react';
-import { Box, Textarea, ActionIcon, Tooltip } from '@mantine/core';
+import { Box, Textarea, ActionIcon, Tooltip, Text } from '@mantine/core';
 import { IconSend, IconSendOff } from '@tabler/icons-react';
 
 interface ChatInputProps {
@@ -16,7 +18,7 @@ interface ChatInputProps {
 export function ChatInput({
   onSend,
   disabled = false,
-  placeholder = 'Message ClickLess AI…',
+  placeholder = 'Find a 4K TV under $900 that arrives by Friday',
 }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -37,25 +39,28 @@ export function ChatInput({
     }
   };
 
+  const canSend = !disabled && value.trim().length > 0;
+
   return (
     <Box
       style={{
-        borderTop: '1px solid var(--cl-border)',
-        padding: '12px 16px',
-        backgroundColor: 'var(--cl-bg-subtle)',
+        padding: '16px 24px 12px',
+        backgroundColor: 'var(--cl-bg)',
       }}
     >
       <Box
         style={{
           display: 'flex',
-          gap: 8,
+          gap: 10,
           alignItems: 'flex-end',
           backgroundColor: 'var(--cl-surface)',
           border: '1px solid',
-          borderColor: isFocused ? 'var(--cl-border-strong)' : 'var(--cl-border)',
-          borderRadius: 12,
-          padding: '6px 6px 6px 12px',
-          transition: 'border-color 0.2s',
+          borderColor: isFocused ? 'var(--cl-brand)' : 'var(--cl-border)',
+          borderRadius: 20,
+          padding: '8px 8px 8px 20px',
+          transition: 'border-color 0.2s ease',
+          boxShadow: isFocused ? '0 0 0 3px rgba(47, 99, 245, 0.08)' : '0 1px 3px rgba(0,0,0,0.03)',
+          minHeight: 56,
         }}
       >
         <Textarea
@@ -80,11 +85,11 @@ export function ChatInput({
               boxShadow: 'none',
               backgroundColor: 'transparent',
               padding: 0,
-              paddingTop: 4,
+              paddingTop: 6,
               resize: 'none',
               color: 'var(--cl-text-primary)',
               lineHeight: 1.6,
-              fontSize: '0.9rem',
+              fontSize: '0.95rem',
             },
           }}
         />
@@ -95,31 +100,32 @@ export function ChatInput({
         >
           <ActionIcon
             onClick={handleSend}
-            disabled={disabled || !value.trim()}
-            size="lg"
-            radius="md"
+            disabled={!canSend}
+            size={40}
+            radius={9999}
             id="chat-send-btn"
             aria-label="Send message"
             style={{
               flexShrink: 0,
-              backgroundColor: disabled || !value.trim() ? 'var(--cl-surface-alt)' : 'var(--cl-brand)',
-              background: disabled || !value.trim()
-                ? 'var(--cl-surface-alt)'
-                : 'linear-gradient(135deg, var(--cl-brand) 0%, var(--cl-brand-glow) 100%)',
+              backgroundColor: canSend ? 'var(--cl-brand)' : 'var(--cl-surface-raised)',
               border: 'none',
-              transition: 'all 0.2s ease',
-              color: '#fff',
+              transition: 'all 0.15s ease',
+              color: canSend ? '#fff' : 'var(--cl-text-muted)',
             }}
           >
-            {disabled ? <IconSendOff size={16} /> : <IconSend size={16} />}
+            {disabled ? <IconSendOff size={17} /> : <IconSend size={17} />}
           </ActionIcon>
         </Tooltip>
       </Box>
-      <Box style={{ textAlign: 'center', marginTop: 6 }}>
-        <span style={{ fontSize: '0.7rem', color: 'var(--cl-text-muted)' }}>
-          Enter to send · Shift+Enter for new line
-        </span>
-      </Box>
+
+      {/* Trust microcopy */}
+      <Text
+        size="xs"
+        ta="center"
+        style={{ color: 'var(--cl-text-muted)', marginTop: 8, fontSize: '0.72rem' }}
+      >
+        ClickLess will not place an order without your approval
+      </Text>
     </Box>
   );
 }

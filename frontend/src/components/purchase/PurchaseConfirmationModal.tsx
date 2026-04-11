@@ -68,12 +68,12 @@ export function PurchaseConfirmationModal({
       styles={{
         header: {
           backgroundColor: 'var(--cl-surface)',
-          borderBottom: '2px solid var(--cl-border-strong)',
+          borderBottom: '1px solid var(--cl-border)',
         },
         content: {
           backgroundColor: 'var(--cl-surface)',
-          border: '2px solid var(--cl-border-strong)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
+          border: '1px solid var(--cl-border)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.12)',
         },
         title: {
           color: 'var(--cl-text-primary)',
@@ -91,7 +91,7 @@ export function PurchaseConfirmationModal({
             color="yellow"
             style={{
               backgroundColor: 'var(--cl-warning-soft)',
-              border: '1px solid var(--cl-warning)',
+              border: '1px solid rgba(217, 155, 53, 0.2)',
             }}
           >
             <Text size="sm" fw={600} style={{ color: 'var(--cl-warning)' }}>
@@ -134,8 +134,8 @@ export function PurchaseConfirmationModal({
           style={{
             backgroundColor: 'var(--cl-surface-alt)',
             border: '1px solid var(--cl-border)',
-            borderRadius: 10,
-            padding: '14px',
+            borderRadius: 16,
+            padding: '16px',
           }}
         >
           <Text size="xs" fw={700} style={{ color: 'var(--cl-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
@@ -232,12 +232,13 @@ export function PurchaseConfirmationModal({
               background: isExpired
                 ? 'var(--cl-surface-alt)'
                 : stage === 'double_confirm'
-                  ? `linear-gradient(135deg, var(--cl-error) 0%, #ef4444 100%)`
-                  : `linear-gradient(135deg, var(--cl-brand) 0%, var(--cl-brand-glow) 100%)`,
+                  ? 'var(--cl-error)'
+                  : 'var(--cl-brand)',
               border: 'none',
               fontWeight: 700,
               minWidth: 140,
               color: '#fff',
+              borderRadius: 9999,
             }}
           >
             {isExpired
