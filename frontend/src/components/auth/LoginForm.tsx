@@ -10,7 +10,7 @@
  * Primary CTA: 56px, juniper fill, arrow nudge on hover.
  * Trust line: one sentence below CTA.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   TextInput, PasswordInput, Button, Checkbox, Stack, Text,
@@ -22,7 +22,7 @@ import {
 } from '@tabler/icons-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { authService } from '@/lib/api/authService';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setUser } from '@/store/slices/sessionSlice';
 
 // Input styles now driven by global componentOverrides — just pass radius override
@@ -31,6 +31,13 @@ const INPUT_PROPS = { radius: 8 } as const;
 export function LoginForm() {
   const router       = useRouter();
   const dispatch     = useAppDispatch();
+  const token        = useAppSelector((state) => state.session.token);
+
+  // Already authenticated — skip login, remove it from history stack
+  useEffect(() => {
+    if (token) router.replace('/app/chat');
+  }, [token, router]);
+
   const [loading, setLoading]           = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError]               = useState<string | null>(null);

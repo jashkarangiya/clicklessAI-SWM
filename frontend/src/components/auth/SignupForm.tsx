@@ -10,7 +10,7 @@
  * No confirm password field — live requirements replace it.
  * Same 56px / radius-18 input treatment as LoginForm.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   TextInput, PasswordInput, Button, Stack, Text,
@@ -23,7 +23,7 @@ import {
 } from '@tabler/icons-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { authService } from '@/lib/api/authService';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setUser } from '@/store/slices/sessionSlice';
 
 // Input styles driven by global componentOverrides
@@ -91,6 +91,13 @@ function PasswordRequirements({ password }: { password: string }) {
 export function SignupForm() {
   const router   = useRouter();
   const dispatch = useAppDispatch();
+  const token    = useAppSelector((state) => state.session.token);
+
+  // Already authenticated — skip signup, remove it from history stack
+  useEffect(() => {
+    if (token) router.replace('/app/chat');
+  }, [token, router]);
+
   const [loading, setLoading]             = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError]                 = useState<string | null>(null);
