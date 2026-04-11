@@ -1,9 +1,11 @@
 'use client';
 /**
  * ClickLess AI – Site Connection Card
- * Shows Amazon or Walmart connection status with connect/disconnect actions.
+ *
+ * Retailer connection card with real brand logos, dot-status badges,
+ * and a clean connect / disconnect action.
  */
-import { Box, Text, Button, Group, Badge, Stack } from '@mantine/core';
+import { Box, Text, Button, Group, Stack } from '@mantine/core';
 import { IconPlugConnected, IconPlugConnectedX, IconRefresh } from '@tabler/icons-react';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'expired';
@@ -15,103 +17,199 @@ interface AmazonSessionDetails {
 }
 
 interface SiteConnectionCardProps {
-  site: 'Amazon' | 'Walmart';
-  status: ConnectionStatus;
+  site:           'Amazon' | 'Walmart';
+  status:         ConnectionStatus;
   sessionDetails?: AmazonSessionDetails | null;
-  onConnect: () => void;
-  onDisconnect: () => void;
+  onConnect:      () => void;
+  onDisconnect:   () => void;
 }
 
-const STATUS_CONFIG: Record<ConnectionStatus, { color: string; bg: string; label: string }> = {
-  connected:    { color: 'var(--cl-success)', bg: 'var(--cl-success-soft)', label: 'Connected' },
-  disconnected: { color: 'var(--cl-text-muted)', bg: 'var(--cl-surface-alt)', label: 'Not connected' },
-  expired:      { color: 'var(--cl-warning)', bg: 'var(--cl-warning-soft)', label: 'Session expired' },
+// ── Status dot config ────────────────────────────────────────────────────────
+
+const STATUS_CONFIG: Record<ConnectionStatus, { dotColor: string; label: string; textColor: string; bgColor: string }> = {
+  connected:    { dotColor: 'var(--cl-success)',    label: 'Connected',      textColor: 'var(--cl-success)',    bgColor: 'var(--cl-success-soft)' },
+  disconnected: { dotColor: '#CBD5E1',              label: 'Not connected',  textColor: 'var(--cl-text-muted)', bgColor: 'var(--cl-surface-raised)' },
+  expired:      { dotColor: 'var(--cl-warning)',    label: 'Session expired', textColor: 'var(--cl-warning)',   bgColor: 'var(--cl-warning-soft)' },
 };
 
-const SITE_COLORS: Record<string, string> = {
-  Amazon:  '#FF9900',
-  Walmart: '#0071CE',
+// ── Brand logos ──────────────────────────────────────────────────────────────
+
+function AmazonLogo() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="48" height="48" rx="13" fill="#FF9900" />
+      {/* Amazon wordmark — simplified inline text path */}
+      <text
+        x="24" y="22"
+        textAnchor="middle"
+        fill="#131921"
+        fontSize="9.5"
+        fontWeight="800"
+        fontFamily="Arial, Helvetica, sans-serif"
+        letterSpacing="-0.2"
+      >
+        amazon
+      </text>
+      {/* Smile arrow */}
+      <path
+        d="M14 29 C18 34 30 34 34 29"
+        stroke="#131921"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Arrowhead */}
+      <path
+        d="M31.5 27.5 L34 29 L31.5 31"
+        stroke="#131921"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
+function WalmartLogo() {
+  // Walmart's 6-petal spark, each petal is a rounded ellipse rotated around center
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="48" height="48" rx="13" fill="#0071CE" />
+      <g transform="translate(24,24)">
+        {[0, 60, 120, 180, 240, 300].map((deg) => (
+          <ellipse
+            key={deg}
+            cx="0"
+            cy="-8.5"
+            rx="2.8"
+            ry="6"
+            fill="white"
+            transform={`rotate(${deg})`}
+          />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+const SITE_LOGOS: Record<string, React.ReactNode> = {
+  Amazon:  <AmazonLogo />,
+  Walmart: <WalmartLogo />,
 };
 
-export function SiteConnectionCard({ site, status, sessionDetails, onConnect, onDisconnect }: SiteConnectionCardProps) {
-  const cfg = STATUS_CONFIG[status];
-  const siteColor = SITE_COLORS[site] ?? 'var(--cl-brand)';
+// ── Component ────────────────────────────────────────────────────────────────
+
+export function SiteConnectionCard({
+  site, status, sessionDetails, onConnect, onDisconnect,
+}: SiteConnectionCardProps) {
+  const cfg         = STATUS_CONFIG[status];
   const isConnected = status === 'connected';
 
   return (
     <Box
       style={{
         backgroundColor: 'var(--cl-surface)',
-        border: `1px solid ${isConnected ? cfg.color + '60' : 'var(--cl-border)'}`,
-        borderRadius: 12,
-        padding: '18px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: 16,
+        border: '1px solid var(--cl-border)',
+        borderRadius: 20,
+        padding: '24px',
       }}
       data-testid={`site-card-${site.toLowerCase()}`}
     >
-      <Group gap="md" align="center" style={{ flex: 1 }}>
-        <Box
-          style={{
-            width: 44, height: 44, borderRadius: '50%',
-            backgroundColor: `${siteColor}20`,
-            border: `1px solid ${siteColor}40`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <Text fw={800} size="sm" style={{ color: siteColor }}>{site[0]}</Text>
-        </Box>
-        <Stack gap={2} style={{ flex: 1, overflow: 'hidden' }}>
-          <Group gap="xs">
-            <Text fw={700} size="sm" style={{ color: 'var(--cl-text-primary)' }}>{site}</Text>
-            <Badge
+      <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+        <Group gap="md" align="flex-start" style={{ flex: 1 }}>
+
+          {/* Brand logo */}
+          <Box style={{ flexShrink: 0 }}>
+            {SITE_LOGOS[site]}
+          </Box>
+
+          <Stack gap={6} style={{ flex: 1 }}>
+            {/* Name + dot badge */}
+            <Group gap="sm" align="center">
+              <Text fw={700} size="md" style={{ color: 'var(--cl-text-primary)' }}>{site}</Text>
+
+              {/* Dot-style status badge */}
+              <Box
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  backgroundColor: cfg.bgColor,
+                  borderRadius: 9999,
+                  padding: '3px 9px',
+                }}
+              >
+                <Box
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor: cfg.dotColor,
+                    flexShrink: 0,
+                  }}
+                />
+                <Text size="xs" style={{ color: cfg.textColor, fontWeight: 600, fontSize: '0.72rem' }}>
+                  {cfg.label}
+                </Text>
+              </Box>
+            </Group>
+
+            {/* Session details */}
+            {sessionDetails && isConnected && (
+              <Stack gap={2}>
+                <Text size="xs" style={{ color: 'var(--cl-text-muted)' }}>
+                  Context: {sessionDetails.browser_context_id}
+                </Text>
+                <Text size="xs" style={{ color: 'var(--cl-text-muted)' }}>
+                  Last verified:{' '}
+                  {new Date(sessionDetails.last_verified).toLocaleTimeString([], {
+                    hour: '2-digit', minute: '2-digit',
+                  })}
+                </Text>
+              </Stack>
+            )}
+
+            {/* Permissions */}
+            {isConnected && (
+              <Text size="xs" style={{ color: 'var(--cl-text-secondary)', marginTop: 2 }}>
+                Search, compare, and checkout — approval required for purchases
+              </Text>
+            )}
+          </Stack>
+        </Group>
+
+        {/* Action button */}
+        <Group gap="xs">
+          {status === 'connected' ? (
+            <Button
               size="xs"
+              variant="subtle"
+              leftSection={<IconPlugConnectedX size={13} />}
+              onClick={onDisconnect}
+              radius={9999}
               style={{
-                backgroundColor: cfg.bg,
-                color: cfg.color,
-                border: `1px solid ${cfg.color}40`,
-                fontWeight: 600,
+                color: 'var(--cl-text-muted)',
+                border: '1px solid var(--cl-border)',
+                backgroundColor: 'var(--cl-surface)',
               }}
             >
-              {cfg.label}
-            </Badge>
-          </Group>
-          {sessionDetails && isConnected && (
-            <Text size="xs" style={{ color: 'var(--cl-text-muted)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-              Context ID: {sessionDetails.browser_context_id} • Verified: {new Date(sessionDetails.last_verified).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Text>
+              Disconnect
+            </Button>
+          ) : (
+            <Button
+              size="xs"
+              leftSection={status === 'expired' ? <IconRefresh size={13} /> : <IconPlugConnected size={13} />}
+              onClick={onConnect}
+              radius={9999}
+              variant="brand"
+              style={{ fontWeight: 600 }}
+            >
+              {status === 'expired' ? 'Reconnect' : 'Connect'}
+            </Button>
           )}
-        </Stack>
-      </Group>
-
-      <Group gap="xs">
-        {status === 'connected' ? (
-          <Button
-            size="xs"
-            variant="subtle"
-            leftSection={<IconPlugConnectedX size={13} />}
-            onClick={onDisconnect}
-            style={{ color: 'var(--cl-error)', border: '1px solid var(--cl-border)' }}
-          >
-            Disconnect
-          </Button>
-        ) : (
-          <Button
-            size="xs"
-            leftSection={status === 'expired' ? <IconRefresh size={13} /> : <IconPlugConnected size={13} />}
-            onClick={onConnect}
-            style={{
-              background: 'linear-gradient(135deg, var(--cl-brand) 0%, var(--cl-brand-glow) 100%)',
-              border: 'none', color: '#fff', fontWeight: 600,
-            }}
-          >
-            {status === 'expired' ? 'Reconnect' : 'Connect'}
-          </Button>
-        )}
-      </Group>
+        </Group>
+      </Box>
     </Box>
   );
 }

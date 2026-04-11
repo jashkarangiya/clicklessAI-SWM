@@ -24,6 +24,7 @@ interface ChatState {
     setTyping: (typing: boolean) => void;
     setSending: (sending: boolean) => void;
     clearHistory: () => void;
+    loadMessages: (msgs: FrontendChatMessage[]) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -44,4 +45,5 @@ export const useChatStore = create<ChatState>((set) => ({
     setTyping: (typing) => set({ isTyping: typing }),
     setSending: (sending) => set({ isSending: sending }),
     clearHistory: () => set({ messages: [], statusText: null }),
+    loadMessages: (msgs) => set({ messages: msgs, statusText: null, isTyping: false, isSending: false }),
 }));

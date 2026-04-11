@@ -29,7 +29,7 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <ReduxProvider>
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-        <MantineProvider theme={mantineTheme} defaultColorScheme="dark">
+        <MantineProvider theme={mantineTheme} forceColorScheme="light">
           <Notifications position="top-right" zIndex={9999} />
           <ModalsProvider>
             {children}

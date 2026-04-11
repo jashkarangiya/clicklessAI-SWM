@@ -1,7 +1,8 @@
 'use client';
 /**
  * ClickLess AI – Status Strip
- * Shows transient status messages (e.g., "Searching Amazon...")
+ * Shows transient status messages inline (e.g., "Searching Amazon...")
+ * Subtle, not banner-style.
  */
 import { Box, Text, Loader } from '@mantine/core';
 
@@ -17,16 +18,13 @@ export function StatusStrip({ text }: StatusStripProps) {
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        padding: '6px 16px',
-        backgroundColor: 'var(--cl-info-soft)',
-        borderTop: '1px solid var(--cl-border)',
-        borderBottom: '1px solid var(--cl-border)',
-        minHeight: 36,
+        padding: '8px 24px',
+        backgroundColor: 'var(--cl-bg)',
       }}
       aria-live="polite"
       role="status"
     >
-      <Loader size="xs" color="var(--cl-info)" type="dots" />
+      <Loader size={14} color="var(--cl-info)" type="dots" />
       <Text size="xs" style={{ color: 'var(--cl-info)', fontWeight: 500 }}>
         {text}
       </Text>

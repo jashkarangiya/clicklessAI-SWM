@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase

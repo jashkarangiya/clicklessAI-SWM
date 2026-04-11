@@ -19,7 +19,14 @@ export const metadata: Metadata = {
     description: 'Shop smarter with AI. You confirm every purchase.',
     type: 'website',
   },
-  icons: { icon: '/favicon.svg' },
+  icons: {
+    icon: [
+      { url: '/favicon/favicon.ico',        sizes: 'any' },
+      { url: '/favicon/favicon-96x96.png',  sizes: '96x96',  type: 'image/png' },
+    ],
+    apple: { url: '/favicon/apple-touch-icon.png', sizes: '180x180' },
+  },
+  manifest: '/favicon/site.webmanifest',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -27,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Prevents theme flicker on initial load */}
-        <ColorSchemeScript defaultColorScheme="dark" />
+        <ColorSchemeScript defaultColorScheme="light" />
       </head>
       <body className={inter.variable}>
         <AppProviders>

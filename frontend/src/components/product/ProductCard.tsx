@@ -36,14 +36,14 @@ export function ProductCard({ product, onBuy, onDetail }: ProductCardProps) {
         border: isRecommended
           ? '2px solid var(--cl-brand)'
           : '1px solid var(--cl-border)',
-        borderRadius: 14,
+        borderRadius: 20,
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
         boxShadow: isRecommended
-          ? '0 0 20px rgba(155,93,255,0.2), 0 4px 16px rgba(0,0,0,0.3)'
-          : '0 2px 8px rgba(0,0,0,0.2)',
+          ? '0 4px 16px rgba(12, 122, 138, 0.14)'
+          : '0 1px 3px rgba(0,0,0,0.04)',
         position: 'relative',
       }}
       data-testid={`product-card-${product.product_id}`}
@@ -179,12 +179,11 @@ export function ProductCard({ product, onBuy, onDetail }: ProductCardProps) {
             onClick={() => onBuy(product)}
             data-testid={`buy-btn-${product.product_id}`}
             style={{
-              background: isRecommended
-                ? 'linear-gradient(135deg, var(--cl-brand) 0%, var(--cl-brand-glow) 100%)'
-                : 'var(--cl-surface-raised)',
+              backgroundColor: isRecommended ? 'var(--cl-brand)' : 'var(--cl-surface)',
               border: isRecommended ? 'none' : '1px solid var(--cl-border)',
               color: isRecommended ? '#fff' : 'var(--cl-text-primary)',
               fontWeight: 600,
+              borderRadius: 9999,
             }}
           >
             Buy this
