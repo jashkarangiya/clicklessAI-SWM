@@ -67,20 +67,31 @@ export function HowItWorksSection() {
       style={{ maxWidth: 1200, margin: '0 auto', padding: '88px 2rem' }}
     >
       {/* Section header */}
-      <Stack gap="md" align="center" style={{ marginBottom: 64 }}>
+      <Stack gap="md" align="center" style={{ marginBottom: 52 }}>
         <Text
-          component="h2"
-          ta="center"
           style={{
-            fontSize: '2.25rem', fontWeight: 700,
-            color: 'var(--cl-text-primary)',
-            letterSpacing: '-0.02em', margin: 0,
+            fontSize: '0.72rem', fontWeight: 700,
+            letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: 'var(--cl-brand)',
           }}
         >
           How it works
         </Text>
-        <Text ta="center" size="lg" style={{ color: 'var(--cl-text-secondary)', maxWidth: 480 }}>
-          Three steps from search to delivery. You stay in control.
+        <Text
+          component="h2"
+          ta="center"
+          className="display-serif"
+          style={{
+            fontSize: 'clamp(2rem, 3.5vw, 2.9rem)',
+            color: 'var(--cl-text-primary)',
+            margin: 0,
+            lineHeight: 1.12,
+          }}
+        >
+          Three steps from search to delivery.
+        </Text>
+        <Text ta="center" size="lg" style={{ color: 'var(--cl-text-secondary)', maxWidth: 420, lineHeight: 1.65 }}>
+          You stay in control at every stage.
         </Text>
       </Stack>
 

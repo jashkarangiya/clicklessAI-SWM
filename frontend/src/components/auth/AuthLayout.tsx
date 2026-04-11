@@ -246,7 +246,7 @@ function ComparisonMockup() {
   );
 }
 
-/* ── Hero panel (right) ─────────────────────────────────────────────────── */
+/* ── Hero panel (teal editorial) ────────────────────────────────────────── */
 interface HeroPanelProps {
   variant: AuthVariant;
 }
@@ -260,11 +260,13 @@ function HeroPanel({ variant }: HeroPanelProps) {
         background: `linear-gradient(150deg, var(--cl-auth-hero-bg) 0%, var(--cl-auth-hero-deep) 100%)`,
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-end',
-        padding: '52px 48px 52px',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '52px 48px',
         position: 'relative',
         overflow: 'hidden',
       }}
+      className="auth-hero-panel"
     >
       {/* Ambient top-right glow */}
       <Box
@@ -295,8 +297,8 @@ function HeroPanel({ variant }: HeroPanelProps) {
         }}
       />
 
-      {/* Content */}
-      <Stack gap={0} style={{ position: 'relative', zIndex: 1 }}>
+      {/* Centered content frame — 540px max, left-aligned text */}
+      <Stack gap={0} style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 540 }}>
         {/* Mockup — rendered above the headline for visual layering */}
         <Box
           className="auth-hero-mockup"
@@ -432,7 +434,9 @@ export function AuthLayout({ children, variant }: AuthLayoutProps) {
           maxWidth: 1100,
           minHeight: 'calc(100vh - 48px)',
           display: 'grid',
-          gridTemplateColumns: '44fr 56fr',
+          // Login: hero LEFT 52% + form RIGHT 48%
+          // Signup: form LEFT 48% + hero RIGHT 52%
+          gridTemplateColumns: isLogin ? '52fr 48fr' : '48fr 52fr',
           borderRadius: 20,
           overflow: 'hidden',
           boxShadow: '0 24px 80px rgba(0,0,0,0.14), 0 4px 20px rgba(0,0,0,0.08)',
@@ -442,16 +446,20 @@ export function AuthLayout({ children, variant }: AuthLayoutProps) {
         }}
         className="auth-shell"
       >
-        {/* ── Form panel (LEFT) ────────────────────────────────────────── */}
+        {/* ── Login: hero LEFT first; Signup: form LEFT first ─────────── */}
+        {isLogin && <HeroPanel variant={variant} />}
+
+        {/* ── Form panel ───────────────────────────────────────────────── */}
         <Box
           style={{
             backgroundColor: 'var(--cl-auth-form-bg)',
             display: 'flex',
             flexDirection: 'column',
-            borderRight: '1px solid var(--cl-auth-divider)',
+            borderLeft:  isLogin ? '1px solid var(--cl-auth-divider)' : undefined,
+            borderRight: isLogin ? undefined : '1px solid var(--cl-auth-divider)',
           }}
         >
-          {/* Form header — logo + theme toggle */}
+          {/* Form header — logo */}
           <Box
             className="auth-form-header"
             style={{
@@ -556,8 +564,8 @@ export function AuthLayout({ children, variant }: AuthLayoutProps) {
           </Box>
         </Box>
 
-        {/* ── Hero panel (RIGHT) ───────────────────────────────────────── */}
-        <HeroPanel variant={variant} />
+        {/* ── Signup: hero RIGHT last ──────────────────────────────────── */}
+        {!isLogin && <HeroPanel variant={variant} />}
       </Box>
 
       {/* ── Animation + responsive styles ─────────────────────────────── */}
@@ -581,7 +589,8 @@ export function AuthLayout({ children, variant }: AuthLayoutProps) {
             min-height: unset !important;
             border-radius: 16px !important;
           }
-          .auth-shell > :last-child {
+          /* On mobile the teal hero panel stacks — give it a fixed height */
+          .auth-hero-panel {
             min-height: 340px;
             justify-content: center !important;
           }

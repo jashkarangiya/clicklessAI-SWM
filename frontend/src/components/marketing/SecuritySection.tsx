@@ -1,141 +1,85 @@
 'use client';
 /**
- * ClickLess AI – Security Section (Pearl + Juniper)
+ * ClickLess AI – Security Section (Pearl + Juniper) — "Trust Chamber"
  *
- * Dark contrast band. Split layout: Left large trust statement, Right 4 security cards.
- * Motion: restrained — cards stagger on scroll entry.
- * Hover: icon tile brightens, surface contrast increases, tiny status pulse appears.
- * Security motion is more grounded than marketing motion — no lifts.
+ * Dark background (#061822) with teal glow + CSS grid texture.
+ * Left: sticky trust statement. Right: 4 vertically stacked cards with animated connector.
+ * GSAP: connector line grows on scroll, cards stagger in on scroll.
  */
 import { useEffect, useRef } from 'react';
-import { Box, Text, Stack, SimpleGrid } from '@mantine/core';
+import { Box, Text, Stack } from '@mantine/core';
 import { IconLock, IconEyeOff, IconClock, IconShieldCheck } from '@tabler/icons-react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-const SECURITY_ITEMS = [
+const SECURITY_CARDS = [
   {
-    icon: <IconEyeOff size={18} />,
-    title: 'Secure session tokens',
-    description: 'We never see, save, or transmit your retailer passwords.',
+    icon: IconEyeOff,
+    title: 'Your password never leaves your device',
+    body: 'ClickLess generates a one-time AES-256 session token per search. Your retailer credentials are never stored, transmitted, or accessible to our servers.',
+    micro: 'AES-256 · Zero credential storage',
   },
   {
-    icon: <IconShieldCheck size={18} />,
-    title: 'Human-in-the-loop',
-    description: 'Every purchase requires your explicit confirmation.',
+    icon: IconShieldCheck,
+    title: 'Every cart action needs your go-ahead',
+    body: 'ClickLess cannot add items to a cart, modify quantities, or initiate checkout without a live confirmation from you. There are no background purchases.',
+    micro: 'Mandatory confirmation · Full audit log',
   },
   {
-    icon: <IconClock size={18} />,
-    title: 'Auto-expiring sessions',
-    description: 'Retailer sessions expire automatically. Disconnect any time.',
+    icon: IconClock,
+    title: 'Sessions close when you finish',
+    body: 'Retailer sessions are transport-layer encrypted with TLS 1.3 and expire automatically once your task ends. No persistent login state is kept on our servers.',
+    micro: 'TLS 1.3 · Auto-expiry · Zero persistence',
   },
   {
-    icon: <IconLock size={18} />,
-    title: 'Encrypted transport',
-    description: 'All data flows over HTTPS/WSS with TLS encryption.',
+    icon: IconLock,
+    title: 'End-to-end encrypted transport',
+    body: 'All data between your device, our API, and retailers travels over HTTPS/WSS. We log session events for debugging but store zero payment or credential data.',
+    micro: 'HTTPS/WSS · Zero-knowledge payments',
   },
 ];
 
-function SecurityCard({ item, delay }: { item: typeof SECURITY_ITEMS[0]; delay: number }) {
-  return (
-    <Box
-      className="sec-card"
-      style={{
-        backgroundColor: 'var(--cl-inverse-surface)',
-        borderRadius: 16,
-        padding: '20px 18px',
-        border: '1px solid rgba(255,255,255,0.06)',
-        display: 'flex',
-        gap: 14,
-        alignItems: 'flex-start',
-        opacity: 0,
-        transform: 'translateY(10px)',
-        transition: `opacity var(--motion-base) var(--ease-emphasis) ${delay}ms,
-                     transform var(--motion-base) var(--ease-emphasis) ${delay}ms,
-                     background-color var(--motion-fast) var(--ease-standard),
-                     border-color var(--motion-fast) var(--ease-standard)`,
-        cursor: 'default',
-      }}
-      onMouseEnter={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        el.style.backgroundColor = 'rgba(31,200,220,0.06)';
-        el.style.borderColor = 'rgba(31,200,220,0.16)';
-        const tile = el.querySelector('.sec-icon') as HTMLElement;
-        if (tile) tile.style.backgroundColor = 'rgba(31,200,220,0.16)';
-        const pulse = el.querySelector('.sec-pulse') as HTMLElement;
-        if (pulse) pulse.style.opacity = '1';
-      }}
-      onMouseLeave={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        el.style.backgroundColor = 'var(--cl-inverse-surface)';
-        el.style.borderColor = 'rgba(255,255,255,0.06)';
-        const tile = el.querySelector('.sec-icon') as HTMLElement;
-        if (tile) tile.style.backgroundColor = 'rgba(31,200,220,0.1)';
-        const pulse = el.querySelector('.sec-pulse') as HTMLElement;
-        if (pulse) pulse.style.opacity = '0';
-      }}
-    >
-      <Box
-        className="sec-icon"
-        style={{
-          width: 36, height: 36, borderRadius: 10,
-          backgroundColor: 'rgba(31,200,220,0.1)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-          color: 'var(--cl-brand)',
-          transition: 'background-color var(--motion-fast) var(--ease-standard)',
-          position: 'relative',
-        }}
-      >
-        {item.icon}
-        {/* Tiny status pulse — revealed on hover */}
-        <Box
-          className="sec-pulse"
-          style={{
-            position: 'absolute',
-            top: -2, right: -2,
-            width: 7, height: 7,
-            borderRadius: '50%',
-            backgroundColor: 'var(--cl-brand)',
-            opacity: 0,
-            transition: 'opacity var(--motion-fast) ease',
-          }}
-        />
-      </Box>
-      <Stack gap={2}>
-        <Text fw={600} size="sm" style={{ color: 'var(--cl-inverse-text)' }}>
-          {item.title}
-        </Text>
-        <Text size="xs" style={{ color: 'var(--cl-inverse-muted)', lineHeight: 1.6 }}>
-          {item.description}
-        </Text>
-      </Stack>
-    </Box>
-  );
-}
-
 export function SecuritySection() {
-  const sectionRef = useRef<HTMLElement>(null);
+  const sectionRef   = useRef<HTMLElement>(null);
+  const rightColRef  = useRef<HTMLDivElement>(null);
+  const connectorRef = useRef<HTMLDivElement>(null);
+  const secCardsRef  = useRef<HTMLDivElement[]>([]);
 
   useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
+    const ctx = gsap.context(() => {
+      gsap.registerPlugin(ScrollTrigger);
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        // Connector line grows as right column scrolls into view
+        gsap.to(connectorRef.current, {
+          scaleY: 1,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: rightColRef.current,
+            start: 'top 70%',
+            end: 'bottom 60%',
+            scrub: 1,
+          },
+        });
 
-    const cards = Array.from(section.querySelectorAll('.sec-card')) as HTMLElement[];
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          cards.forEach((card) => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
+        // Cards stagger in
+        secCardsRef.current.forEach((card) => {
+          gsap.to(card, {
+            opacity: 1,
+            y: 0,
+            duration: 0.5,
+            ease: 'power2.out',
+            scrollTrigger: {
+              trigger: card,
+              start: 'top 80%',
+              once: true,
+            },
           });
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.15 }
-    );
+        });
+      });
+    }, sectionRef);
 
-    observer.observe(section);
-    return () => observer.disconnect();
+    return () => ctx.revert();
   }, []);
 
   return (
@@ -144,10 +88,41 @@ export function SecuritySection() {
       id="security"
       ref={sectionRef}
       style={{
-        backgroundColor: 'var(--cl-inverse-bg)',
-        padding: '88px 2rem',
+        position: 'relative',
+        backgroundColor: '#071C25',
+        padding: '120px 2rem',
+        overflow: 'hidden',
       }}
     >
+      {/* Teal radial glow */}
+      <Box
+        style={{
+          position: 'absolute',
+          top: '50%',
+          right: '-10%',
+          transform: 'translateY(-50%)',
+          width: '60vw',
+          height: '60vw',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(12,122,138,0.08) 0%, transparent 65%)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
+      {/* CSS grid texture */}
+      <Box
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
+          backgroundSize: '52px 52px',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
+      {/* Content */}
       <Box
         style={{
           maxWidth: 1200,
@@ -155,45 +130,177 @@ export function SecuritySection() {
           display: 'grid',
           gridTemplateColumns: '5fr 7fr',
           gap: '4rem',
-          alignItems: 'center',
+          alignItems: 'start',
+          position: 'relative',
+          zIndex: 1,
         }}
         className="security-grid"
       >
-        {/* Left: large trust statement */}
-        <Stack gap="lg">
-          <Text
-            component="h2"
-            style={{
-              fontSize: '2.75rem', fontWeight: 700,
-              color: 'var(--cl-inverse-text)',
-              letterSpacing: '-0.02em', margin: 0,
-              lineHeight: 1.12,
-            }}
-          >
-            Control is{' '}
-            <span className="serif-accent" style={{ color: 'var(--cl-brand)' }}>
-              built in.
-            </span>
-          </Text>
-          <Text
-            size="lg"
-            style={{
-              color: 'var(--cl-inverse-muted)',
-              lineHeight: 1.7,
-              maxWidth: 380,
-            }}
-          >
-            ClickLess never places an order without your approval.
-            Your credentials stay private. Your sessions stay controlled.
-          </Text>
-        </Stack>
+        {/* ── Left column: sticky trust statement ── */}
+        <Box style={{ position: 'sticky', top: '120px', height: 'fit-content' }}>
+          <Stack gap="lg">
+            {/* Eyebrow */}
+            <Text
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: 'var(--cl-brand)',
+              }}
+            >
+              Security &amp; Control
+            </Text>
 
-        {/* Right: 4 security cards (stagger on scroll) */}
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-          {SECURITY_ITEMS.map((item, i) => (
-            <SecurityCard key={item.title} item={item} delay={i * 60} />
-          ))}
-        </SimpleGrid>
+            {/* H2 */}
+            <Text
+              component="h2"
+              className="display-serif"
+              style={{
+                fontSize: 'clamp(2.4rem, 3.5vw, 3.2rem)',
+                color: '#EEF4F7',
+                lineHeight: 1.08,
+                margin: 0,
+              }}
+            >
+              Control is built in.
+            </Text>
+
+            {/* Body */}
+            <Text
+              style={{
+                color: '#8EA4B2',
+                lineHeight: 1.7,
+                maxWidth: 380,
+                fontSize: '1rem',
+              }}
+            >
+              ClickLess never places an order without your approval. Retailer credentials
+              stay private. Sessions stay controlled.
+            </Text>
+
+            {/* Trust statement */}
+            <Box
+              style={{
+                marginTop: 16,
+                borderLeft: '2px solid rgba(12,122,138,0.4)',
+                paddingLeft: 16,
+              }}
+            >
+              <Text
+                style={{
+                  color: '#8EA4B2',
+                  fontSize: '0.9rem',
+                  fontStyle: 'italic',
+                  lineHeight: 1.6,
+                }}
+              >
+                AI is doing the work. You are still in control.
+              </Text>
+            </Box>
+          </Stack>
+        </Box>
+
+        {/* ── Right column: stacked cards with vertical connector ── */}
+        <Box
+          ref={rightColRef}
+          style={{ position: 'relative', paddingLeft: 32 }}
+        >
+          {/* Connector line */}
+          <Box
+            ref={connectorRef}
+            style={{
+              position: 'absolute',
+              left: 27,
+              top: 20,
+              width: 2,
+              height: 'calc(100% - 40px)',
+              background: 'linear-gradient(to bottom, rgba(12,122,138,0.5), rgba(12,122,138,0.1))',
+              transformOrigin: 'top',
+              transform: 'scaleY(0)',
+            }}
+          />
+
+          {/* Cards */}
+          {SECURITY_CARDS.map((card, i) => {
+            const IconComp = card.icon;
+            return (
+              <Box
+                key={card.title}
+                ref={(el: HTMLDivElement | null) => { if (el) secCardsRef.current[i] = el; }}
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 16,
+                  padding: '22px 20px',
+                  display: 'flex',
+                  gap: 16,
+                  alignItems: 'flex-start',
+                  opacity: 0,
+                  transform: 'translateY(20px)',
+                  marginBottom: 24,
+                }}
+              >
+                {/* Icon tile */}
+                <Box
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    backgroundColor: 'rgba(12,122,138,0.12)',
+                    border: '1px solid rgba(12,122,138,0.18)',
+                    color: 'var(--cl-brand)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <IconComp size={18} />
+                </Box>
+
+                {/* Content */}
+                <Box style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      color: '#EEF4F7',
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      marginBottom: 6,
+                    }}
+                  >
+                    {card.title}
+                  </Text>
+                  <Text
+                    style={{
+                      color: '#8EA4B2',
+                      fontSize: '0.83rem',
+                      lineHeight: 1.65,
+                      marginBottom: 0,
+                    }}
+                  >
+                    {card.body}
+                  </Text>
+                  <Box
+                    style={{
+                      display: 'inline-block',
+                      marginTop: 8,
+                      fontSize: '0.68rem',
+                      fontWeight: 600,
+                      color: 'rgba(12,122,138,0.9)',
+                      backgroundColor: 'rgba(12,122,138,0.1)',
+                      border: '1px solid rgba(12,122,138,0.2)',
+                      borderRadius: 4,
+                      padding: '2px 7px',
+                    }}
+                  >
+                    {card.micro}
+                  </Box>
+                </Box>
+              </Box>
+            );
+          })}
+        </Box>
       </Box>
 
       <style>{`

@@ -2,177 +2,191 @@
 /**
  * ClickLess AI – Marketing Header
  *
- * 76px sticky header: wordmark | centered nav | sign-in + theme toggle + CTA
- * Nav links: soft pill hover bg + sliding underline.
- * CTA: lift + arrow nudge. Wordmark brightens on hover.
+ * Floating glass-lite capsule: position fixed, centered, 56px height, 18px radius.
+ * Section-aware contrast: light glass over Pearl canvas, dark glass over trust section.
+ * Shrinks 4px on scroll for polish.
  */
-import { Box, Group, Button, Anchor, Burger, ActionIcon } from '@mantine/core';
+import { useEffect, useState } from 'react';
+import { Box, Group, Button, Anchor, Burger } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { useMantineColorScheme } from '@mantine/core';
-import { IconSun, IconMoon, IconArrowRight } from '@tabler/icons-react';
+import { IconArrowRight } from '@tabler/icons-react';
 import { LogoWordmark } from '@/components/branding/LogoWordmark';
+import { LogoMark } from '@/components/branding/LogoMark';
 
 const NAV_ITEMS = [
-  { label: 'Product',       href: '#product' },
-  { label: 'How it works',  href: '#how-it-works' },
-  { label: 'Security',      href: '#security' },
+  { label: 'Product',      href: '#product' },
+  { label: 'How it works', href: '#how-it-works' },
+  { label: 'Security',     href: '#security' },
 ];
 
-function NavLink({ label, href }: { label: string; href: string }) {
-  return (
-    <Box style={{ position: 'relative' }}>
-      <Anchor
-        href={href}
-        underline="never"
-        className="cl-nav-link"
-        style={{
-          color: 'var(--cl-text-secondary)',
-          fontWeight: 500,
-          fontSize: '0.88rem',
-          padding: '5px 12px',
-          borderRadius: 9999,
-          display: 'block',
-          transition: `color var(--motion-fast) var(--ease-standard),
-                       background-color 160ms var(--ease-standard)`,
-          backgroundColor: 'transparent',
-        }}
-        onMouseEnter={(e) => {
-          const el = e.currentTarget as HTMLElement;
-          el.style.color = 'var(--cl-text-primary)';
-          el.style.backgroundColor = 'var(--cl-surface-raised)';
-        }}
-        onMouseLeave={(e) => {
-          const el = e.currentTarget as HTMLElement;
-          el.style.color = 'var(--cl-text-secondary)';
-          el.style.backgroundColor = 'transparent';
-        }}
-      >
-        {label}
-      </Anchor>
-    </Box>
-  );
-}
-
 export function MarketingHeader() {
-  const [opened, { toggle }] = useDisclosure(false);
-  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
-  const isDark = colorScheme === 'dark';
+  const [opened, { toggle, close }] = useDisclosure(false);
+  const [scrolled,  setScrolled]  = useState(false);
+  const [overDark,  setOverDark]  = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 60);
+      // Detect when navbar is over the dark trust section
+      const sec = document.getElementById('security');
+      if (sec) {
+        const r = sec.getBoundingClientRect();
+        setOverDark(r.top <= 60 && r.bottom >= 60);
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const textColor    = overDark ? 'rgba(238,244,247,0.85)' : 'var(--cl-text-secondary)';
+  const textHover    = overDark ? '#EEF4F7'                : 'var(--cl-text-primary)';
+  const pillHoverBg  = overDark ? 'rgba(255,255,255,0.08)' : 'var(--cl-surface-raised)';
+  const h            = scrolled ? 50 : 56;
 
   return (
-    <Box
-      component="header"
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        backgroundColor: 'var(--cl-bg)',
-        borderBottom: '1px solid var(--cl-border)',
-        height: 76,
-        backdropFilter: 'blur(12px)',
-      }}
-    >
+    <>
+      {/* ── Floating capsule ─────────────────────────────────────────────── */}
       <Box
+        component="header"
         style={{
-          maxWidth: 1200,
-          margin: '0 auto',
-          height: '100%',
+          position:   'fixed',
+          top:        scrolled ? 10 : 16,
+          left:       '50%',
+          transform:  'translateX(-50%)',
+          width:      'min(1060px, calc(100vw - 32px))',
+          height:     h,
+          zIndex:     200,
+          borderRadius: 18,
+          backgroundColor: overDark
+            ? 'rgba(7,28,37,0.62)'
+            : 'rgba(247,246,243,0.78)',
+          backdropFilter: 'blur(18px) saturate(150%)',
+          WebkitBackdropFilter: 'blur(18px) saturate(150%)',
+          border: overDark
+            ? '1px solid rgba(255,255,255,0.09)'
+            : '1px solid rgba(255,255,255,0.60)',
+          boxShadow: overDark
+            ? '0 8px 28px rgba(0,0,0,0.28)'
+            : '0 8px 28px rgba(20,32,51,0.07)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 2rem',
+          padding: '0 20px',
+          transition: 'all 280ms cubic-bezier(0.2,0.8,0.2,1)',
         }}
       >
-        {/* Left: wordmark — brightens on hover */}
+        {/* Left: logo */}
         <Box
+          component="a"
+          href="/"
           style={{
-            transition: 'filter var(--motion-fast) var(--ease-standard)',
-            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 7,
+            textDecoration: 'none', flexShrink: 0,
+            transition: 'opacity 160ms ease',
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(1.15)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = 'brightness(1)'; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.75'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
         >
-          <LogoWordmark size="md" />
+          <LogoMark size={26} />
+          <Box
+            style={{
+              fontSize: '0.95rem', fontWeight: 700,
+              color: overDark ? '#EEF4F7' : 'var(--cl-text-primary)',
+              letterSpacing: '-0.01em',
+              transition: 'color 280ms ease',
+            }}
+          >
+            ClickLess
+          </Box>
         </Box>
 
-        {/* Center: nav links (desktop) */}
+        {/* Center: nav */}
         <Group
-          gap="xs"
+          gap={2}
           visibleFrom="sm"
           style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}
         >
-          {NAV_ITEMS.map((item) => (
-            <NavLink key={item.label} label={item.label} href={item.href} />
+          {NAV_ITEMS.map(({ label, href }) => (
+            <Anchor
+              key={label}
+              href={href}
+              underline="never"
+              style={{
+                color: textColor,
+                fontWeight: 500,
+                fontSize: '0.875rem',
+                padding: '5px 13px',
+                borderRadius: 9999,
+                display: 'block',
+                transition: 'color 160ms ease, background-color 160ms ease',
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.color = textHover;
+                el.style.backgroundColor = pillHoverBg;
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.color = textColor;
+                el.style.backgroundColor = 'transparent';
+              }}
+            >
+              {label}
+            </Anchor>
           ))}
         </Group>
 
-        {/* Right: sign in + theme toggle + CTA */}
-        <Group gap="sm">
-          <Button
-            component="a"
+        {/* Right: sign in + CTA */}
+        <Group gap={8} style={{ flexShrink: 0 }}>
+          <Anchor
             href="/login"
-            variant="subtle"
-            radius={9999}
+            underline="never"
             visibleFrom="sm"
             style={{
-              color: 'var(--cl-text-secondary)',
+              color: textColor,
               fontWeight: 500,
-              transition: 'color var(--motion-fast) ease',
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--cl-text-primary)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--cl-text-secondary)'; }}
-          >
-            Sign in
-          </Button>
-
-          {/* Theme toggle */}
-          <ActionIcon
-            variant="subtle"
-            radius={9999}
-            size={36}
-            onClick={() => toggleColorScheme()}
-            aria-label="Toggle color scheme"
-            style={{
-              color: 'var(--cl-text-secondary)',
-              transition: `color var(--motion-fast) ease,
-                           background-color var(--motion-fast) ease,
-                           transform var(--motion-fast) var(--ease-emphasis)`,
+              fontSize: '0.875rem',
+              padding: '5px 13px',
+              borderRadius: 9999,
+              transition: 'color 160ms ease, background-color 160ms ease',
             }}
             onMouseEnter={(e) => {
               const el = e.currentTarget as HTMLElement;
-              el.style.color = 'var(--cl-text-primary)';
-              el.style.transform = 'rotate(15deg)';
+              el.style.color = textHover;
+              el.style.backgroundColor = pillHoverBg;
             }}
             onMouseLeave={(e) => {
               const el = e.currentTarget as HTMLElement;
-              el.style.color = 'var(--cl-text-secondary)';
-              el.style.transform = 'rotate(0deg)';
+              el.style.color = textColor;
+              el.style.backgroundColor = 'transparent';
             }}
           >
-            {isDark ? <IconSun size={18} /> : <IconMoon size={18} />}
-          </ActionIcon>
+            Sign in
+          </Anchor>
 
-          {/* Primary CTA — lift + arrow nudge */}
           <Button
             component="a"
             href="/signup"
             variant="brand"
             radius={9999}
+            size="sm"
+            visibleFrom="sm"
             rightSection={
               <IconArrowRight
-                size={15}
+                size={14}
+                className="nav-cta-arrow"
                 style={{ transition: 'transform 140ms ease' }}
-                className="cta-arrow"
               />
             }
-            className="cl-btn-lift"
-            style={{ fontWeight: 600 }}
+            style={{ fontWeight: 600, height: 36 }}
             onMouseEnter={(e) => {
-              const arrow = e.currentTarget.querySelector('.cta-arrow') as HTMLElement;
-              if (arrow) arrow.style.transform = 'translateX(2px)';
+              const a = e.currentTarget.querySelector('.nav-cta-arrow') as HTMLElement;
+              if (a) a.style.transform = 'translateX(2px)';
             }}
             onMouseLeave={(e) => {
-              const arrow = e.currentTarget.querySelector('.cta-arrow') as HTMLElement;
-              if (arrow) arrow.style.transform = 'translateX(0)';
+              const a = e.currentTarget.querySelector('.nav-cta-arrow') as HTMLElement;
+              if (a) a.style.transform = 'translateX(0)';
             }}
           >
             Try ClickLess
@@ -183,45 +197,65 @@ export function MarketingHeader() {
             onClick={toggle}
             hiddenFrom="sm"
             size="sm"
+            color={overDark ? '#EEF4F7' : 'var(--cl-text-primary)'}
           />
         </Group>
       </Box>
 
-      {/* Mobile nav dropdown */}
+      {/* ── Mobile drawer ─────────────────────────────────────────────────── */}
       {opened && (
         <Box
           hiddenFrom="sm"
           style={{
-            backgroundColor: 'var(--cl-surface)',
-            borderBottom: '1px solid var(--cl-border)',
-            padding: '16px 2rem',
+            position: 'fixed',
+            top: 80,
+            left: 16,
+            right: 16,
+            zIndex: 199,
+            backgroundColor: 'rgba(247,246,243,0.96)',
+            backdropFilter: 'blur(18px)',
+            borderRadius: 16,
+            border: '1px solid rgba(255,255,255,0.6)',
+            boxShadow: '0 12px 40px rgba(20,32,51,0.12)',
+            padding: '16px 20px',
           }}
         >
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.map(({ label, href }) => (
             <Anchor
-              key={item.label}
-              href={item.href}
+              key={label}
+              href={href}
               underline="never"
               display="block"
-              py="sm"
-              style={{ color: 'var(--cl-text-primary)', fontWeight: 500 }}
+              onClick={close}
+              style={{
+                color: 'var(--cl-text-primary)',
+                fontWeight: 500,
+                fontSize: '0.95rem',
+                padding: '10px 0',
+                borderBottom: '1px solid var(--cl-border)',
+              }}
             >
-              {item.label}
+              {label}
             </Anchor>
           ))}
-          <Button
-            component="a"
-            href="/login"
-            variant="subtle"
-            fullWidth
-            mt="sm"
-            radius={9999}
-            style={{ color: 'var(--cl-text-primary)' }}
-          >
-            Sign in
-          </Button>
+          <Group mt="md" gap="sm">
+            <Button
+              component="a" href="/login" variant="surface"
+              radius={9999} fullWidth onClick={close}
+              style={{ height: 44 }}
+            >
+              Sign in
+            </Button>
+            <Button
+              component="a" href="/signup" variant="brand"
+              radius={9999} fullWidth onClick={close}
+              style={{ height: 44 }}
+            >
+              Try ClickLess
+            </Button>
+          </Group>
         </Box>
       )}
-    </Box>
+    </>
   );
 }

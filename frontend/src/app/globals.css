@@ -107,10 +107,18 @@
   --cl-overlay:         rgba(4, 10, 18, 0.75);
 }
 
-/* ── Serif accent font utility (use sparingly: hero, 1 section, CTA) ───── */
+/* ── Serif font utilities ────────────────────────────────────────────────── */
+/* Italic accent — for emphasis words inline with other copy                  */
 .serif-accent {
   font-family: 'Instrument Serif', Georgia, serif;
   font-style: italic;
+}
+/* Display serif — for major section headings (non-italic)                    */
+.display-serif {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: -0.025em;
 }
 
 /* ── Base resets ─────────────────────────────────────────────────────────── */

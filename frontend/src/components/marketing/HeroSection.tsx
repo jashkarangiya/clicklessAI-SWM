@@ -2,14 +2,15 @@
 /**
  * ClickLess AI – Hero Section (Pearl + Juniper)
  *
- * 5/7 split: left copy + CTAs (staggered entrance), right layered product mockup.
- * Mockup: query bar → AI card → comparison rows (hoverable) → approval summary
- * Ambient: approval card drifts 4px vertically; spotlight shifts slowly behind mockup.
+ * Centered editorial layout: announcement pill → serif headline → subtitle
+ * → CTA row → proof chips → large floating product stage.
+ * GSAP ScrollTrigger: parallax float on scroll.
  */
 import { useEffect, useRef, useState } from 'react';
 import { Box, Text, Button, Group, Stack } from '@mantine/core';
-import { IconArrowRight, IconShieldCheck, IconBolt, IconPlugConnected, IconTruck } from '@tabler/icons-react';
-import { ProofChip } from '@/components/common/ProofChip';
+import { IconArrowRight, IconPlugConnected, IconTruck } from '@tabler/icons-react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 const PRODUCTS = [
   { name: 'Sony WH-1000XM5', price: '$278', tag: 'Best Match', tagColor: 'var(--cl-brand)',       tagBg: 'var(--cl-brand-soft)',       delivery: 'Tomorrow' },
@@ -70,7 +71,6 @@ function ProductRow({ product, index }: { product: typeof PRODUCTS[0]; index: nu
         >
           {product.tag}
         </Box>
-        {/* Compare affordance appears on hover */}
         <Box style={{
           fontSize: '0.6rem', fontWeight: 500, color: 'var(--cl-text-muted)',
           opacity: hovered ? 1 : 0,
@@ -88,143 +88,228 @@ function ProductRow({ product, index }: { product: typeof PRODUCTS[0]; index: nu
 export function HeroSection() {
   const [mounted, setMounted] = useState(false);
 
+  const heroRef     = useRef<HTMLElement>(null);
+  const stageRef    = useRef<HTMLDivElement>(null);
+  const approvalRef = useRef<HTMLDivElement>(null);
+  const chipRef     = useRef<HTMLDivElement>(null);
+  const copyRef     = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    // Small frame delay so CSS animations fire after paint
     const id = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    gsap.registerPlugin(ScrollTrigger);
+
+    const ctx = gsap.context(() => {
+      const mm = gsap.matchMedia();
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const triggerDefaults = {
+          trigger: heroRef.current,
+          start: 'top top',
+          end: 'bottom top',
+          ease: 'none' as const,
+        };
+
+        gsap.to(stageRef.current, {
+          y: -28,
+          scale: 0.98,
+          ease: 'none',
+          scrollTrigger: { ...triggerDefaults, scrub: 1.5 },
+        });
+
+        gsap.to(approvalRef.current, {
+          y: -40,
+          x: 8,
+          ease: 'none',
+          scrollTrigger: { ...triggerDefaults, scrub: 2 },
+        });
+
+        gsap.to(chipRef.current, {
+          y: -14,
+          ease: 'none',
+          scrollTrigger: { ...triggerDefaults, scrub: 1 },
+        });
+
+        gsap.to(copyRef.current, {
+          y: -16,
+          opacity: 0.8,
+          ease: 'none',
+          scrollTrigger: { ...triggerDefaults, scrub: 1 },
+        });
+      });
+    }, heroRef);
+
+    return () => ctx.revert();
   }, []);
 
   return (
     <Box
       component="section"
+      ref={heroRef}
       style={{
-        maxWidth: 1200,
-        margin: '0 auto',
-        padding: '80px 2rem 64px',
-        display: 'grid',
-        gridTemplateColumns: '5fr 7fr',
-        gap: '3.5rem',
-        alignItems: 'center',
+        padding: '72px 2rem 80px',
+        textAlign: 'center',
       }}
-      className="hero-grid"
     >
-      {/* ── Left column: copy + CTAs (staggered entrance) ── */}
-      <Stack gap="xl">
-        <Stack gap="md">
-          {/* Headline – reveal-up, first */}
+      {/* ── Copy block (pill → h1 → subtitle → CTAs → chips) ── */}
+      <div ref={copyRef}>
+        <Stack gap="xl" align="center">
+
+          {/* Announcement pill */}
+          <Box
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '5px 14px',
+              borderRadius: 9999,
+              backgroundColor: 'var(--cl-brand-soft)',
+              border: '1px solid rgba(12,122,138,0.22)',
+              animation: mounted ? 'reveal-fade 0.4s ease 0ms both' : 'none',
+              opacity: mounted ? undefined : 0,
+            }}
+          >
+            <Box style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              backgroundColor: 'var(--cl-brand)',
+              flexShrink: 0,
+            }} />
+            <Text style={{
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              color: 'var(--cl-brand)',
+            }}>
+              Now live — Amazon &amp; Walmart
+            </Text>
+          </Box>
+
+          {/* H1 headline */}
           <Text
             component="h1"
+            className="hero-editorial-title"
             style={{
-              fontSize: '3.5rem',
-              fontWeight: 700,
-              lineHeight: 1.06,
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontWeight: 400,
+              fontSize: 'clamp(2.8rem, 5.5vw, 4.75rem)',
+              lineHeight: 1.08,
+              letterSpacing: '-0.025em',
               color: 'var(--cl-text-primary)',
-              letterSpacing: '-0.03em',
               margin: 0,
-              animation: mounted ? 'reveal-up 0.42s cubic-bezier(0.16,1,0.3,1) 0ms both' : 'none',
+              animation: mounted ? 'reveal-up 0.48s cubic-bezier(0.16,1,0.3,1) 60ms both' : 'none',
               opacity: mounted ? undefined : 0,
             }}
           >
             Shopping should feel like{' '}
-            <span className="serif-accent" style={{ color: 'var(--cl-brand)' }}>
-              asking,
-            </span>{' '}
+            <em style={{ color: 'var(--cl-brand)', fontStyle: 'italic' }}>asking,</em>{' '}
             not browsing.
           </Text>
 
-          {/* Body – stagger 100ms */}
+          {/* Subtitle */}
           <Text
             size="lg"
             style={{
               color: 'var(--cl-text-secondary)',
               lineHeight: 1.7,
-              maxWidth: 440,
-              animation: mounted ? 'reveal-up 0.42s cubic-bezier(0.16,1,0.3,1) 100ms both' : 'none',
+              maxWidth: 520,
+              textAlign: 'center',
+              animation: mounted ? 'reveal-up 0.42s cubic-bezier(0.16,1,0.3,1) 140ms both' : 'none',
               opacity: mounted ? undefined : 0,
             }}
           >
-            ClickLess finds, compares, and prepares checkout across your connected
-            retailers. Every purchase still waits for your approval.
+            Describe what you want in plain English. ClickLess finds it across
+            dozens of retailers, compares prices, and checks out — with your approval.
           </Text>
+
+          {/* CTA row */}
+          <Box
+            style={{
+              animation: mounted ? 'reveal-up 0.42s cubic-bezier(0.16,1,0.3,1) 200ms both' : 'none',
+              opacity: mounted ? undefined : 0,
+            }}
+          >
+            <Group gap="md" justify="center" style={{ marginBottom: 14 }}>
+              <Button
+                component="a"
+                href="/signup"
+                variant="brand"
+                size="lg"
+                radius={9999}
+                rightSection={<IconArrowRight size={18} style={{ transition: 'transform 140ms ease' }} />}
+                className="cl-btn-lift"
+                style={{ fontWeight: 600, height: 52, paddingInline: 32 }}
+                onMouseEnter={(e) => {
+                  const icon = e.currentTarget.querySelector('svg');
+                  if (icon) (icon as unknown as HTMLElement).style.transform = 'translateX(3px)';
+                }}
+                onMouseLeave={(e) => {
+                  const icon = e.currentTarget.querySelector('svg');
+                  if (icon) (icon as unknown as HTMLElement).style.transform = 'translateX(0)';
+                }}
+              >
+                Try ClickLess free
+              </Button>
+              <Box
+                component="a"
+                href="#how-it-works"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  height: 52,
+                  paddingInline: 20,
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                  color: 'var(--cl-text-secondary)',
+                  textDecoration: 'none',
+                  borderRadius: 9999,
+                  transition: 'color 140ms ease',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--cl-text-primary)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--cl-text-secondary)'; }}
+              >
+                See how it works →
+              </Box>
+            </Group>
+            {/* Pre-empt the two main objections */}
+            <Text
+              ta="center"
+              style={{
+                fontSize: '0.8rem',
+                color: 'var(--cl-text-muted)',
+                letterSpacing: '0.01em',
+              }}
+            >
+              No credit card required · Works with Amazon, Walmart &amp; 40+ stores
+            </Text>
+          </Box>
+
         </Stack>
+      </div>
 
-        {/* CTAs – stagger 180ms */}
-        <Group
-          gap="md"
-          style={{
-            animation: mounted ? 'reveal-up 0.42s cubic-bezier(0.16,1,0.3,1) 180ms both' : 'none',
-            opacity: mounted ? undefined : 0,
-          }}
-        >
-          <Button
-            component="a"
-            href="/signup"
-            variant="brand"
-            size="lg"
-            radius={9999}
-            rightSection={<IconArrowRight size={18} style={{ transition: 'transform 140ms ease' }} />}
-            className="cl-btn-lift"
-            style={{ fontWeight: 600, height: 52, paddingInline: 28 }}
-            onMouseEnter={(e) => {
-              const icon = e.currentTarget.querySelector('svg');
-              if (icon) (icon as unknown as HTMLElement).style.transform = 'translateX(2px)';
-            }}
-            onMouseLeave={(e) => {
-              const icon = e.currentTarget.querySelector('svg');
-              if (icon) (icon as unknown as HTMLElement).style.transform = 'translateX(0)';
-            }}
-          >
-            Try ClickLess free
-          </Button>
-          <Button
-            component="a"
-            href="#how-it-works"
-            variant="surface"
-            size="lg"
-            radius={9999}
-            className="cl-btn-lift"
-            style={{ height: 52, paddingInline: 28 }}
-          >
-            See how it works
-          </Button>
-        </Group>
-
-        {/* Proof chips – staggered 50ms apart */}
-        <Group
-          gap="sm"
-          wrap="wrap"
-          style={{
-            animation: mounted ? 'reveal-fade 0.5s ease 280ms both' : 'none',
-            opacity: mounted ? undefined : 0,
-          }}
-        >
-          <ProofChip variant="brand" icon={<IconShieldCheck size={13} />}>
-            Approval required
-          </ProofChip>
-          <ProofChip variant="gold" icon={<IconBolt size={13} />}>
-            Real-time comparison
-          </ProofChip>
-          <ProofChip variant="default" icon={<IconPlugConnected size={13} />}>
-            Amazon · Walmart
-          </ProofChip>
-        </Group>
-      </Stack>
-
-      {/* ── Right column: layered product mockup ── */}
-      <Box
+      {/* ── Product stage ── */}
+      <div
+        ref={stageRef}
         style={{
           position: 'relative',
-          animation: mounted ? 'reveal-up 0.52s cubic-bezier(0.16,1,0.3,1) 80ms both' : 'none',
+          marginTop: 56,
+          maxWidth: 760,
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          animation: mounted ? 'reveal-up 0.56s cubic-bezier(0.16,1,0.3,1) 100ms both' : 'none',
           opacity: mounted ? undefined : 0,
         }}
       >
-        {/* Spotlight glow behind card */}
+        {/* Ambient spotlight glow */}
         <Box
           style={{
             position: 'absolute',
             inset: -40,
             borderRadius: 40,
-            background: 'radial-gradient(ellipse 70% 50% at 60% 50%, color-mix(in srgb, var(--cl-brand) 8%, transparent) 0%, transparent 70%)',
+            background: 'radial-gradient(ellipse 70% 50% at 50% 50%, color-mix(in srgb, var(--cl-brand) 8%, transparent) 0%, transparent 70%)',
             pointerEvents: 'none',
             animation: 'spotlight-shift 14s ease-in-out infinite',
             zIndex: 0,
@@ -234,45 +319,69 @@ export function HeroSection() {
         {/* Main product card */}
         <Box
           style={{
-            backgroundColor: 'var(--cl-surface)',
+            backgroundColor: '#FFFFFF',
             borderRadius: 24,
+            padding: '0',
             border: '1px solid var(--cl-border)',
-            padding: '28px',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.06)',
+            boxShadow: '0 40px 100px rgba(6,18,34,0.09), 0 4px 20px rgba(12,122,138,0.05)',
             position: 'relative',
             zIndex: 1,
+            overflow: 'hidden',
           }}
         >
-          <Stack gap="md">
-            {/* Search query pill */}
+          {/* Chrome bar */}
+          <Box
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '12px 18px',
+              borderBottom: '1px solid var(--cl-border)',
+              backgroundColor: 'var(--cl-surface-alt)',
+            }}
+          >
+            {/* macOS traffic dots */}
+            <Box style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <Box style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#FF5F57' }} />
+              <Box style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#FFBD2E' }} />
+              <Box style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#28CA41' }} />
+            </Box>
+            {/* Fake address bar */}
             <Box
               style={{
-                backgroundColor: 'var(--cl-surface-alt)',
-                borderRadius: 14,
-                padding: '11px 16px',
+                flex: 1,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 7,
                 border: '1px solid var(--cl-border)',
+                padding: '4px 12px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
-                animation: mounted ? 'reveal-up-sm 0.35s cubic-bezier(0.16,1,0.3,1) 200ms both' : 'none',
               }}
             >
-              <Box style={{
-                width: 8, height: 8, borderRadius: '50%',
-                backgroundColor: 'var(--cl-brand)', flexShrink: 0,
-              }} />
-              <Text size="sm" style={{ color: 'var(--cl-text-primary)', flex: 1, fontWeight: 500 }}>
+              <Text
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--cl-text-muted)',
+                  fontStyle: 'italic',
+                  fontFamily: 'Inter, sans-serif',
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
+                }}
+              >
                 Noise-canceling headphones under $300, fast delivery
               </Text>
             </Box>
+          </Box>
 
-            {/* AI response card */}
+          {/* AI response block */}
+          <Box style={{ padding: '24px 28px 28px' }}>
             <Box
               style={{
                 display: 'flex', gap: 10, alignItems: 'flex-start',
-                animation: mounted ? 'reveal-up-sm 0.38s cubic-bezier(0.16,1,0.3,1) 280ms both' : 'none',
               }}
             >
+              {/* AI avatar tile */}
               <Box
                 style={{
                   width: 28, height: 28, borderRadius: 8,
@@ -283,6 +392,8 @@ export function HeroSection() {
               >
                 <Text fw={700} style={{ fontSize: '0.6rem', color: 'var(--cl-brand)' }}>AI</Text>
               </Box>
+
+              {/* Bubble with product rows */}
               <Box
                 style={{
                   backgroundColor: 'var(--cl-surface-raised)',
@@ -294,8 +405,6 @@ export function HeroSection() {
                 <Text size="sm" style={{ color: 'var(--cl-text-primary)', marginBottom: 10 }}>
                   Found 3 options across Amazon and Walmart:
                 </Text>
-
-                {/* Interactive comparison rows */}
                 <Stack gap={5}>
                   {PRODUCTS.map((p, i) => (
                     <ProductRow key={p.name} product={p} index={i} />
@@ -303,107 +412,78 @@ export function HeroSection() {
                 </Stack>
               </Box>
             </Box>
-          </Stack>
+          </Box>
         </Box>
 
-        {/* Floating approval summary card — ambient drift */}
-        <Box
-          className="cl-drift"
-          style={{
-            position: 'absolute',
-            bottom: -20,
-            right: -16,
-            backgroundColor: 'var(--cl-surface)',
-            borderRadius: 16,
-            padding: '14px 18px',
-            border: '2px solid var(--cl-brand)',
-            boxShadow: '0 8px 28px rgba(0,0,0,0.1)',
-            minWidth: 200,
-            zIndex: 2,
-            animation: 'drift-float 9s ease-in-out infinite, reveal-up-sm 0.42s cubic-bezier(0.16,1,0.3,1) 520ms both',
-          }}
-        >
-          <Text size="xs" fw={700} style={{ color: 'var(--cl-brand)', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.62rem' }}>
-            Order Summary
-          </Text>
-          <Text style={{ fontSize: '0.78rem', color: 'var(--cl-text-primary)', fontWeight: 600, marginBottom: 2 }}>
-            Sony WH-1000XM5
-          </Text>
-          <Box style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center' }}>
-            <Text style={{ fontSize: '0.72rem', color: 'var(--cl-brand)', fontWeight: 700 }}>$278</Text>
-            <Text style={{ fontSize: '0.68rem', color: 'var(--cl-text-muted)' }}>· Tomorrow · Amazon</Text>
-          </Box>
+        {/* Floating approval card */}
+        <div ref={approvalRef} style={{ position: 'absolute', bottom: -20, right: -16, zIndex: 2 }}>
           <Box
+            className="cl-drift"
             style={{
-              padding: '6px 14px',
-              borderRadius: 9999,
-              backgroundColor: 'var(--cl-brand)',
-              color: '#fff',
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              textAlign: 'center',
-              letterSpacing: '0.01em',
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: '14px 18px',
+              border: '2px solid var(--cl-brand)',
+              boxShadow: '0 12px 40px rgba(6,18,34,0.12), 0 2px 8px rgba(12,122,138,0.08)',
+              minWidth: 200,
+              animation: 'drift-float 9s ease-in-out infinite, reveal-up-sm 0.42s cubic-bezier(0.16,1,0.3,1) 520ms both',
             }}
           >
-            Approve Purchase
+            <Text size="xs" fw={700} style={{ color: 'var(--cl-brand)', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase', fontSize: '0.62rem' }}>
+              Order Summary
+            </Text>
+            <Text style={{ fontSize: '0.78rem', color: 'var(--cl-text-primary)', fontWeight: 600, marginBottom: 2 }}>
+              Sony WH-1000XM5
+            </Text>
+            <Box style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center' }}>
+              <Text style={{ fontSize: '0.72rem', color: 'var(--cl-brand)', fontWeight: 700 }}>$278</Text>
+              <Text style={{ fontSize: '0.68rem', color: 'var(--cl-text-muted)' }}>· Tomorrow · Amazon</Text>
+            </Box>
+            <Box
+              style={{
+                padding: '6px 14px',
+                borderRadius: 9999,
+                backgroundColor: 'var(--cl-brand)',
+                color: '#fff',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                textAlign: 'center',
+                letterSpacing: '0.01em',
+              }}
+            >
+              Approve Purchase
+            </Box>
           </Box>
-        </Box>
+        </div>
 
-        {/* Floating retailer chip (top-left) */}
-        <Box
-          style={{
-            position: 'absolute',
-            top: -12,
-            left: -12,
-            display: 'flex',
-            gap: 6,
-            alignItems: 'center',
-            backgroundColor: 'var(--cl-surface)',
-            borderRadius: 9999,
-            padding: '5px 12px',
-            border: '1px solid var(--cl-border)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-            zIndex: 2,
-            animation: mounted ? 'reveal-fade 0.4s ease 360ms both' : 'none',
-          }}
-        >
-          <IconPlugConnected size={12} style={{ color: 'var(--cl-success)' }} />
-          <Text style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--cl-text-primary)' }}>
-            Amazon · Walmart
-          </Text>
-          <Box style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--cl-success)', flexShrink: 0 }} />
-        </Box>
-
-        {/* Floating proof label (top-right) */}
-        <Box
-          style={{
-            position: 'absolute',
-            top: 14,
-            right: -20,
-            backgroundColor: 'var(--cl-accent-gold-soft)',
-            borderRadius: 9999,
-            padding: '3px 10px',
-            fontSize: '0.62rem',
-            fontWeight: 600,
-            color: 'var(--cl-accent-gold)',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-            zIndex: 2,
-            animation: mounted ? 'reveal-fade 0.4s ease 440ms both' : 'none',
-          }}
-        >
-          Approval required
-        </Box>
-      </Box>
+        {/* Floating retailer chip */}
+        <div ref={chipRef} style={{ position: 'absolute', top: -14, left: -12, zIndex: 2 }}>
+          <Box
+            style={{
+              display: 'flex',
+              gap: 6,
+              alignItems: 'center',
+              backgroundColor: '#FFFFFF',
+              borderRadius: 9999,
+              padding: '5px 12px',
+              border: '1px solid var(--cl-border)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+              animation: mounted ? 'reveal-fade 0.4s ease 360ms both' : 'none',
+            }}
+          >
+            <IconPlugConnected size={12} style={{ color: 'var(--cl-success)' }} />
+            <Text style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--cl-text-primary)' }}>
+              Amazon · Walmart
+            </Text>
+            <Box style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--cl-success)', flexShrink: 0 }} />
+          </Box>
+        </div>
+      </div>
 
       {/* Mobile responsive */}
       <style>{`
-        @media (max-width: 768px) {
-          .hero-grid {
-            grid-template-columns: 1fr !important;
-            padding-top: 40px !important;
-            gap: 2rem !important;
-          }
-          .hero-grid h1 { font-size: 2.25rem !important; }
+        @media (max-width: 640px) {
+          .hero-editorial-title { font-size: 2.4rem !important; }
         }
       `}</style>
     </Box>

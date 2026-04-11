@@ -12,6 +12,7 @@ import { ProofStrip } from '@/components/marketing/ProofStrip';
 import { InteractiveDemoSection } from '@/components/marketing/InteractiveDemoSection';
 import { FeatureCardGrid } from '@/components/marketing/FeatureCardGrid';
 import { HowItWorksSection } from '@/components/marketing/HowItWorksSection';
+import { TestimonialsSection } from '@/components/marketing/TestimonialsSection';
 import { SecuritySection } from '@/components/marketing/SecuritySection';
 import { ClosingCTA } from '@/components/marketing/ClosingCTA';
 import { MarketingFooter } from '@/components/marketing/MarketingFooter';
@@ -25,12 +26,13 @@ export default function LandingPage() {
       }}
     >
       <MarketingHeader />
-      <main>
+      <main style={{ paddingTop: 88 }}>
         <HeroSection />
         <ProofStrip />
         <InteractiveDemoSection />
         <FeatureCardGrid />
         <HowItWorksSection />
+        <TestimonialsSection />
         <SecuritySection />
         <ClosingCTA />
       </main>

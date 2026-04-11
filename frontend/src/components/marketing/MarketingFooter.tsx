@@ -7,6 +7,7 @@
  */
 import { Box, Text, Group, Anchor, Stack, Divider } from '@mantine/core';
 import { LogoWordmark } from '@/components/branding/LogoWordmark';
+import { LogoMark } from '@/components/branding/LogoMark';
 
 const LINKS = {
   Product: [
@@ -52,7 +53,10 @@ export function MarketingFooter() {
         >
           {/* Brand column */}
           <Stack gap="md">
-            <LogoWordmark size="md" />
+            <Group gap={8} align="center">
+              <LogoMark size={26} />
+              <LogoWordmark size="md" />
+            </Group>
             <Text size="sm" style={{ color: 'var(--cl-text-secondary)', maxWidth: 260, lineHeight: 1.65 }}>
               AI-powered shopping with human-in-the-loop control.
               Shop smarter across Amazon and Walmart.

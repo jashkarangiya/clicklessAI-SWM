@@ -1,8 +1,9 @@
 'use client';
 /**
- * ClickLess AI – Closing CTA (Pearl + Juniper)
+ * ClickLess AI – Closing CTA
  *
- * Animated ambient background: two soft radial blobs drift slowly (12–16s loops).
+ * Clean white card — no gradients, no floating ornaments.
+ * Subtle teal accent line at top as the only brand hint.
  * Buttons: most-refined on the page — bigger lift, stronger arrow nudge.
  */
 import { Box, Text, Button, Group, Stack } from '@mantine/core';
@@ -20,10 +21,11 @@ export function ClosingCTA() {
     >
       <Box
         style={{
-          background: 'linear-gradient(135deg, var(--cl-brand-soft) 0%, var(--cl-surface) 60%, var(--cl-accent-gold-soft) 100%)',
+          backgroundColor: '#FFFFFF',
           borderRadius: 28,
           padding: '72px 48px',
-          border: '1px solid var(--cl-border)',
+          border: '1px solid #E6ECEF',
+          boxShadow: '0 20px 60px rgba(20,32,51,0.06)',
           textAlign: 'center',
           maxWidth: 800,
           margin: '0 auto',
@@ -31,31 +33,19 @@ export function ClosingCTA() {
           overflow: 'hidden',
         }}
       >
-        {/* Animated ambient blob — warm amber drift */}
+        {/* Subtle teal top-accent line */}
         <Box
+          aria-hidden="true"
           style={{
             position: 'absolute',
-            bottom: -60,
-            left: -60,
-            width: 220,
-            height: 220,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(12,122,138,0.07) 0%, transparent 70%)',
-            pointerEvents: 'none',
-            animation: 'spotlight-shift 13s ease-in-out infinite',
-          }}
-        />
-        <Box
-          style={{
-            position: 'absolute',
-            top: -40,
-            right: -40,
-            width: 200,
-            height: 200,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(184,137,68,0.06) 0%, transparent 70%)',
-            pointerEvents: 'none',
-            animation: 'spotlight-shift 16s ease-in-out infinite reverse',
+            top: 0,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 64,
+            height: 3,
+            borderRadius: '0 0 3px 3px',
+            backgroundColor: 'var(--cl-brand)',
+            opacity: 0.7,
           }}
         />
 
@@ -63,18 +53,17 @@ export function ClosingCTA() {
         <Stack gap="xl" align="center" style={{ position: 'relative', zIndex: 1 }}>
           <Text
             component="h2"
+            className="display-serif"
             style={{
-              fontSize: '2.75rem', fontWeight: 700,
+              fontSize: 'clamp(2.2rem, 4vw, 3rem)',
               color: 'var(--cl-text-primary)',
-              letterSpacing: '-0.025em', margin: 0,
-              maxWidth: 520,
-              lineHeight: 1.1,
+              margin: 0,
+              maxWidth: 540,
+              lineHeight: 1.08,
             }}
           >
             The faster way from{' '}
-            <span className="serif-accent" style={{ color: 'var(--cl-brand)' }}>
-              request
-            </span>{' '}
+            <em style={{ color: 'var(--cl-brand)' }}>request</em>{' '}
             to checkout.
           </Text>
 
