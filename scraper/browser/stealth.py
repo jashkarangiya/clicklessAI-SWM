@@ -4,6 +4,7 @@ Handles request pacing, user-agent rotation, CAPTCHA detection,
 proxy rotation, stealth patches, and lightweight HTTP pre-checks via aiohttp.
 """
 
+import os
 import random
 import asyncio
 import logging
@@ -70,19 +71,10 @@ STEALTH_SCRIPTS = [
     };""",
 ]
 
-# CAPTCHA detection patterns
-CAPTCHA_INDICATORS = [
-    "captcha",
-    "recaptcha",
-    "hcaptcha",
-    "challenge",
-    "robot",
-    "verify you are a human",
-    "unusual traffic",
-    "automated access",
-    "please verify",
-    "solve this puzzle",
-]
+
+def playwright_headless() -> bool:
+    """Set CLICKLESS_HEADFUL=1 to open a real browser window (easier to debug / pass checks locally)."""
+    return os.getenv("CLICKLESS_HEADFUL", "").lower() not in ("1", "true", "yes")
 
 
 def get_random_user_agent() -> str:
@@ -100,39 +92,120 @@ async def random_delay(min_seconds: float = 2.0, max_seconds: float = 5.0):
 async def apply_stealth_scripts(page) -> None:
     """
     Apply stealth patches to a Playwright page to mask automation signals.
+    Uses playwright-stealth package if available (preferred — covers ~12 fingerprint
+    vectors), then also applies our manual scripts as supplemental patches.
     Must be called before navigating to any page.
     """
+    # Try playwright-stealth first (comprehensive coverage)
+    # v2.x API: Stealth().apply_stealth_async(page)
+    # v1.x API: stealth_async(page)  — kept as fallback
+    try:
+        from playwright_stealth import Stealth  # type: ignore [import-untyped]
+        await Stealth().apply_stealth_async(page)
+        logger.debug("playwright-stealth v2 applied")
+    except (ImportError, AttributeError):
+        try:
+            from playwright_stealth import stealth_async  # type: ignore [import-untyped]
+            await stealth_async(page)
+            logger.debug("playwright-stealth v1 applied")
+        except ImportError:
+            logger.debug("playwright-stealth not installed — falling back to manual scripts")
+            for script in STEALTH_SCRIPTS:
+                try:
+                    await page.add_init_script(script)
+                except Exception as e:
+                    logger.debug(f"Stealth script warning: {e}")
+            return
+
+    # Apply supplemental manual patches on top of playwright-stealth
     for script in STEALTH_SCRIPTS:
         try:
             await page.add_init_script(script)
         except Exception as e:
-            logger.debug(f"Stealth script warning: {e}")
+            logger.debug(f"Supplemental stealth script warning: {e}")
 
 
 async def detect_captcha(page) -> bool:
     """
-    Check if the current page contains a CAPTCHA challenge.
-    Returns True if CAPTCHA detected, False otherwise.
-    """
-    try:
-        content = await page.content()
-        content_lower = content.lower()
+    Detect an *active* bot challenge — not every mention of "recaptcha" in script URLs.
 
-        for indicator in CAPTCHA_INDICATORS:
-            if indicator in content_lower:
-                logger.warning(f"CAPTCHA detected: found '{indicator}' on page")
+    The old implementation scanned raw HTML for the substring "captcha", which false-
+    positives on assets like google.com/recaptcha/api.js on normal pages.
+
+    Retail sites may still block headless automation; that is separate from detection.
+
+    Set CLICKLESS_SKIP_CAPTCHA_CHECK=1 to never short-circuit on CAPTCHA (local class demos
+    / grading only — not for production against third-party sites).
+    """
+    if os.getenv("CLICKLESS_SKIP_CAPTCHA_CHECK", "").lower() in ("1", "true", "yes"):
+        logger.info(
+            "CLICKLESS_SKIP_CAPTCHA_CHECK=1 — not treating page as CAPTCHA (demo / class build)"
+        )
+        return False
+
+    try:
+        # Strong signals: challenge widgets
+        iframe_selectors = [
+            "iframe[src*='recaptcha']",
+            "iframe[src*='hcaptcha']",
+            "iframe[src*='arkose']",
+            "iframe[src*='captcha-delivery']",
+            "iframe[src*='google.com/recaptcha']",
+        ]
+        for sel in iframe_selectors:
+            found = await page.query_selector(sel)
+            if found:
+                logger.warning("CAPTCHA / challenge iframe matched: %s", sel)
                 return True
 
-        # Check for common CAPTCHA iframes
-        captcha_frames = await page.query_selector_all(
-            "iframe[src*='captcha'], iframe[src*='recaptcha'], iframe[src*='hcaptcha']"
+        # Block / interstitial titles
+        title = (await page.title() or "").lower()
+        title_hits = (
+            "robot check",
+            "access denied",
+            "unusual traffic",
+            "before we continue",
+            "verify it’s you",
+            "verify it's you",
+            "sorry, we just need",
+            "automated requests",
         )
-        if captcha_frames:
-            logger.warning("CAPTCHA iframe detected on page")
+        if any(h in title for h in title_hits):
+            logger.warning("CAPTCHA / block page title: %s", title[:120])
+            return True
+
+        # Visible page text only (not script-heavy HTML)
+        try:
+            body_text = (await page.locator("body").inner_text(timeout=8000) or "").lower()
+        except Exception:
+            body_text = ""
+
+        strong_phrases = [
+            "unusual traffic from your computer",
+            "unusual traffic from your network",
+            "verify you are a human",
+            "let us know you're not a robot",
+            "let us know you’re not a robot",
+            "press and hold",
+            "press & hold",
+            "solve this puzzle",
+            "automated access to our site",
+            "sorry, we just need to make sure you're not a robot",
+        ]
+        for phrase in strong_phrases:
+            if phrase in body_text:
+                logger.warning("CAPTCHA / block phrase in visible text: %s", phrase[:60])
+                return True
+
+        # Weaker keywords: require two hits in visible text to reduce noise
+        weak = ("recaptcha challenge", "hcaptcha", "g-recaptcha", "perimeterx", "datadome")
+        weak_hits = sum(1 for w in weak if w in body_text)
+        if weak_hits >= 1 and ("verify" in body_text or "robot" in body_text):
+            logger.warning("CAPTCHA-like content (combined weak signals)")
             return True
 
     except Exception as e:
-        logger.debug(f"CAPTCHA detection error: {e}")
+        logger.debug("CAPTCHA detection error: %s", e)
 
     return False
 

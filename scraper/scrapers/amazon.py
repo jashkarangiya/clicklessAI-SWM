@@ -4,6 +4,7 @@ Standalone async function that takes a search query and returns
 structured product data using Playwright for browser automation.
 """
 
+import os
 import re
 import logging
 import asyncio
@@ -20,7 +21,9 @@ from scraper.browser.stealth import (
     detect_captcha,
     human_like_type,
     get_stealth_browser_args,
+    playwright_headless,
 )
+from scraper.browser.captcha_resolve import resolve_or_continue
 
 logger = logging.getLogger(__name__)
 
@@ -76,13 +79,14 @@ async def search_amazon(
 
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(
-            headless=True,
+            headless=playwright_headless(),
             args=get_stealth_browser_args(),
         )
         context = await browser.new_context(
             user_agent=get_random_user_agent(),
             viewport={"width": 1366, "height": 768},
             locale="en-US",
+            timezone_id="America/Phoenix",
         )
         page = await context.new_page()
         await apply_stealth_scripts(page)
@@ -92,7 +96,7 @@ async def search_amazon(
                 page, query, max_results, max_price, min_rating
             )
         except Exception as e:
-            logger.error(f"Amazon search failed: {e}")
+            logger.error(f"Amazon search failed: {e}", exc_info=True)
         finally:
             await browser.close()
 
@@ -111,13 +115,28 @@ async def _scrape_search_results(
     search_url = f"https://www.amazon.com/s?k={query.replace(' ', '+')}"
 
     logger.info(f"Navigating to Amazon search: {query}")
-    await page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
+    try:
+        await page.goto(search_url, wait_until="domcontentloaded", timeout=45000)
+    except Exception as nav_err:
+        logger.error(f"Amazon navigation failed: {nav_err}")
+        return []
     await random_delay(2, 4)
 
-    # Check for CAPTCHA
+    page_title = await page.title()
+    logger.info(f"Amazon landed on: '{page_title}' | {page.url}")
+
+    # CAPTCHA / bot interstitial — try 2Captcha if TWOCAPTCHA_API_KEY is set
     if await detect_captcha(page):
-        logger.warning("CAPTCHA detected on Amazon - returning empty results")
-        return [_captcha_error_product()]
+        logger.warning("CAPTCHA-like page on Amazon — trying 2Captcha / fallback")
+        solved = await resolve_or_continue(page)
+        if not solved and os.getenv("CLICKLESS_SKIP_CAPTCHA_CHECK", "").lower() not in (
+            "1",
+            "true",
+            "yes",
+        ):
+            return [_captcha_error_product()]
+        if not solved:
+            logger.warning("Continuing Amazon scrape after CAPTCHA (skip flag or no sitekey)")
 
     page_num = 1
     while len(products) < max_results:
@@ -159,8 +178,15 @@ async def _scrape_search_results(
                 page_num += 1
 
                 if await detect_captcha(page):
-                    logger.warning("CAPTCHA on pagination - stopping")
-                    break
+                    if await resolve_or_continue(page):
+                        continue
+                    if os.getenv("CLICKLESS_SKIP_CAPTCHA_CHECK", "").lower() not in (
+                        "1",
+                        "true",
+                        "yes",
+                    ):
+                        logger.warning("CAPTCHA on pagination - stopping")
+                        break
             else:
                 break  # No more pages
 

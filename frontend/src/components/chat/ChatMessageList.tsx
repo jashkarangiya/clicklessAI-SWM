@@ -46,15 +46,16 @@ export function ChatMessageList({
     <Box
       style={{
         flex: 1, overflowY: 'auto',
-        padding: '20px 16px',
+        padding: '24px 24px',
         display: 'flex', flexDirection: 'column',
+        alignItems: 'center',
       }}
     >
-      <Stack gap="lg">
+      <Stack gap="lg" style={{ maxWidth: 800, width: '100%' }}>
         {messages.map((msg) => {
           if (msg.type === 'text') {
             if (msg.role === 'user') return <UserMessageBubble key={msg.id} content={msg.content} timestamp={msg.timestamp} />;
-            return <AssistantMessageBubble key={msg.id} content={msg.content} timestamp={msg.timestamp} />;
+            return <AssistantMessageBubble key={msg.id} content={msg.content} timestamp={msg.timestamp} isStreaming={msg.isStreaming} />;
           }
           if (msg.type === 'status') {
             // Transient status messages shown inline if they persist
@@ -94,9 +95,10 @@ export function ChatMessageList({
                   <button
                     onClick={() => onConfirmRequest(msg.confirmation)}
                     style={{
-                      background: 'linear-gradient(135deg, var(--cl-brand) 0%, var(--cl-brand-glow) 100%)',
-                      border: 'none', color: '#fff', borderRadius: 8,
-                      padding: '8px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 14,
+                      backgroundColor: 'var(--cl-brand)',
+                      border: 'none', color: '#fff', borderRadius: 9999,
+                      padding: '10px 24px', cursor: 'pointer', fontWeight: 600, fontSize: 14,
+                      transition: 'background-color 0.15s ease',
                     }}
                   >
                     Review Order →
@@ -119,8 +121,8 @@ export function ChatMessageList({
               <Box key={msg.id}
                 style={{
                   backgroundColor: 'var(--cl-warning-soft)',
-                  border: '1px solid var(--cl-warning)',
-                  borderRadius: 10, padding: '12px 16px', maxWidth: '80%',
+                  border: '1px solid rgba(217, 155, 53, 0.2)',
+                  borderRadius: 16, padding: '14px 20px', maxWidth: '80%',
                 }}
               >
                 <span style={{ color: 'var(--cl-warning)', fontSize: 14, fontWeight: 600 }}>
@@ -131,7 +133,7 @@ export function ChatMessageList({
           }
           return null;
         })}
-        {isTyping && <TypingIndicator />}
+        {isTyping && !messages.some((m) => m.type === 'text' && m.isStreaming) && <TypingIndicator />}
         <div ref={bottomRef} />
       </Stack>
     </Box>

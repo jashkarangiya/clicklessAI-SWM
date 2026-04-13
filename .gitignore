@@ -54,6 +54,15 @@ node_modules/
 .next/
 .nuxt/
 
+# TypeScript build artifacts
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Old / stale frontend source
+frontend-old-src/
+frontend-old-package.json
+frontend-old-tsconfig.json
+
 # Logs
 *.log
 logs/

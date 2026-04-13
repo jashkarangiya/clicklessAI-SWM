@@ -1,6 +1,8 @@
 'use client';
 /**
  * ClickLess AI – User Message Bubble
+ *
+ * Compact pale-blue pill aligned right.
  */
 import { Box, Text } from '@mantine/core';
 import { formatTimestamp } from '@/lib/utils/formatters';
@@ -16,19 +18,18 @@ export function UserMessageBubble({ content, timestamp }: UserMessageBubbleProps
       <Box style={{ maxWidth: '70%' }}>
         <Box
           style={{
-            backgroundColor: 'var(--cl-brand)',
-            background: 'linear-gradient(135deg, var(--cl-brand) 0%, var(--cl-brand-glow) 100%)',
-            color: '#fff',
-            borderRadius: '16px 16px 4px 16px',
-            padding: '10px 16px',
+            backgroundColor: 'var(--cl-brand-soft)',
+            color: 'var(--cl-brand)',
+            borderRadius: '20px 20px 6px 20px',
+            padding: '12px 18px',
             lineHeight: 1.6,
           }}
         >
-          <Text size="sm" style={{ color: '#fff', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <Text size="sm" fw={500} style={{ color: 'var(--cl-text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
             {content}
           </Text>
         </Box>
-        <Text size="xs" ta="right" style={{ color: 'var(--cl-text-muted)', marginTop: 4 }}>
+        <Text size="xs" ta="right" style={{ color: 'var(--cl-text-muted)', marginTop: 6, marginRight: 4 }}>
           {formatTimestamp(timestamp)}
         </Text>
       </Box>

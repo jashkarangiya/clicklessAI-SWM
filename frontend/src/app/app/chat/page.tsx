@@ -10,11 +10,12 @@
  * - PurchaseConfirmationModal
  * - useClicklessSocket
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Box } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useChatStore } from '@/stores/chatStore';
-import { useClicklessSocket } from '@/hooks/useClicklessSocket';
+import { useClicklessSocket } from '@/providers/ClicklessSocketProvider';
+import { useAppSelector } from '@/store/hooks';
 import { ChatMessageList } from '@/components/chat/ChatMessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { StatusStrip } from '@/components/chat/StatusStrip';
@@ -31,31 +32,29 @@ export default function ChatPage() {
   const isTyping  = useChatStore((s) => s.isTyping);
   const isSending = useChatStore((s) => s.isSending);
   const statusText = useChatStore((s) => s.statusText);
+  const conversationId = useChatStore((s) => s.conversationId);
   const addMessage  = useChatStore((s) => s.addMessage);
   const setSending  = useChatStore((s) => s.setSending);
   const updateMessage = useChatStore((s) => s.updateMessage);
 
-  const { connect, send } = useClicklessSocket();
+  // Socket is managed by ClicklessSocketProvider in the layout — no explicit connect() needed
+  const { send } = useClicklessSocket();
+  const userId = useAppSelector((s) => s.session.user?.id ?? 'anonymous');
 
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [activeConfirmation, setActiveConfirmation] = useState<PurchaseConfirmation | null>(null);
-
-  // Connect WebSocket on mount
-  useEffect(() => { connect(); }, [connect]);
+  const [isDirectBuy, setIsDirectBuy] = useState(false);
 
   const handleSend = useCallback((text: string) => {
-    // Add user message to chat
     const userMsg: FrontendChatMessage = {
       id: nanoid(), type: 'text', role: 'user',
       timestamp: new Date().toISOString(), content: text,
     };
     addMessage(userMsg);
     setSending(true);
-
-    // Send to WS
-    send({ event: 'user_message', session_id: 'mock-session', content: text });
+    send({ event: 'user_message', session_id: conversationId, content: text, user_id: userId });
     setSending(false);
-  }, [addMessage, setSending, send]);
+  }, [addMessage, setSending, send, conversationId, userId]);
 
   const handleSuggestion = useCallback((text: string) => {
     handleSend(text);
@@ -63,15 +62,13 @@ export default function ChatPage() {
 
   const handleClarificationSelect = useCallback((msgId: string, optionId: string, value: string) => {
     updateMessage(msgId, { selectedOption: optionId } as Partial<FrontendChatMessage>);
-    // Add user message showing their selection
-    const label = value;
     const userMsg: FrontendChatMessage = {
       id: nanoid(), type: 'text', role: 'user',
-      timestamp: new Date().toISOString(), content: label,
+      timestamp: new Date().toISOString(), content: value,
     };
     addMessage(userMsg);
-    send({ event: 'clarification_reply', session_id: 'mock-session', option_id: optionId });
-  }, [updateMessage, addMessage, send]);
+    send({ event: 'clarification_reply', session_id: conversationId, option_id: optionId });
+  }, [updateMessage, addMessage, send, conversationId]);
 
   const handleClarificationFreeText = useCallback((msgId: string, text: string) => {
     updateMessage(msgId, { selectedOption: '__free_text__' } as Partial<FrontendChatMessage>);
@@ -80,17 +77,24 @@ export default function ChatPage() {
       timestamp: new Date().toISOString(), content: text,
     };
     addMessage(userMsg);
-    send({ event: 'clarification_reply', session_id: 'mock-session', free_text: text });
-  }, [updateMessage, addMessage, send]);
+    send({ event: 'clarification_reply', session_id: conversationId, free_text: text });
+  }, [updateMessage, addMessage, send, conversationId]);
 
+  // "Buy this" on a product card — opens confirmation modal, then sends direct_buy
   const handleBuy = useCallback((product: NormalizedProduct) => {
-    const userMsg: FrontendChatMessage = {
-      id: nanoid(), type: 'text', role: 'user',
-      timestamp: new Date().toISOString(), content: `Buy the ${product.name}`,
+    const confirmation: PurchaseConfirmation = {
+      confirmation_id: nanoid(),
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      product,
+      delivery: { address: '' },
+      payment: { method_type: '' },
+      total_price: product.pricing.current,
     };
-    addMessage(userMsg);
-    send({ event: 'user_message', session_id: 'mock-session', content: `confirm_buy:${product.product_id}` });
-  }, [addMessage, send]);
+    setActiveConfirmation(confirmation);
+    setIsDirectBuy(true);
+    setConfirmationOpen(true);
+  }, []);
 
   const handleDetail = useCallback((product: NormalizedProduct) => {
     notifications.show({
@@ -102,13 +106,26 @@ export default function ChatPage() {
 
   const handleConfirmRequest = useCallback((confirmation: PurchaseConfirmation) => {
     setActiveConfirmation(confirmation);
+    setIsDirectBuy(false);
     setConfirmationOpen(true);
   }, []);
 
   const handleConfirm = useCallback((confirmationId: string) => {
     setConfirmationOpen(false);
-    send({ event: 'purchase_confirm', session_id: 'mock-session', confirmation_id: confirmationId, confirmed: true });
-  }, [send]);
+    if (isDirectBuy && activeConfirmation) {
+      // Bypass the LangGraph flow — send directly to execute_purchase
+      send({
+        event: 'direct_buy',
+        session_id: conversationId,
+        user_id: userId,
+        product: activeConfirmation.product,
+        confirmation_id: confirmationId,
+      });
+    } else {
+      // Resume interrupted LangGraph graph
+      send({ event: 'purchase_confirm', session_id: conversationId, confirmation_id: confirmationId, confirmed: true });
+    }
+  }, [send, isDirectBuy, activeConfirmation, conversationId, userId]);
 
   const handleCancel = useCallback(() => {
     setConfirmationOpen(false);
@@ -120,13 +137,13 @@ export default function ChatPage() {
   }, [addMessage]);
 
   const handleRetry = useCallback(() => {
-    send({ event: 'user_message', session_id: 'mock-session', content: 'retry' });
-  }, [send]);
+    send({ event: 'user_message', session_id: conversationId, content: 'retry', user_id: userId });
+  }, [send, conversationId, userId]);
 
   const hasMessages = messages.length > 0;
 
   return (
-    <Box style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
+    <Box style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       {!hasMessages ? (
         <ChatEmptyState onSuggestion={handleSuggestion} />
       ) : (

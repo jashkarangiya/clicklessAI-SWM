@@ -151,10 +151,20 @@ class TestStealthModule:
         config = get_proxy_config("http://proxy:8080")
         assert config == {"server": "http://proxy:8080"}
 
-    def test_captcha_indicators_exist(self):
-        from scraper.browser.stealth import CAPTCHA_INDICATORS
-        assert len(CAPTCHA_INDICATORS) > 0
-        assert "captcha" in CAPTCHA_INDICATORS
+    def test_playwright_headless_env(self):
+        import os
+        from scraper.browser.stealth import playwright_headless
+
+        prev = os.environ.pop("CLICKLESS_HEADFUL", None)
+        try:
+            assert playwright_headless() is True
+            os.environ["CLICKLESS_HEADFUL"] = "1"
+            assert playwright_headless() is False
+        finally:
+            if prev is not None:
+                os.environ["CLICKLESS_HEADFUL"] = prev
+            else:
+                os.environ.pop("CLICKLESS_HEADFUL", None)
 
     def test_stealth_scripts_exist(self):
         from scraper.browser.stealth import STEALTH_SCRIPTS
@@ -166,10 +176,11 @@ class TestStealthModule:
         assert callable(preflight_check)
         assert callable(batch_preflight)
 
-    @pytest.mark.asyncio
-    async def test_preflight_check_bad_url(self):
+    def test_preflight_check_bad_url(self):
+        import asyncio
         from scraper.browser.stealth import preflight_check
-        result = await preflight_check("http://localhost:1/nonexistent", timeout=2)
+
+        result = asyncio.run(preflight_check("http://localhost:1/nonexistent", timeout=2))
         assert result["reachable"] is False
         assert result["status"] == 0
 

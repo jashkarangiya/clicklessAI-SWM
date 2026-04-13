@@ -11,6 +11,7 @@
 import { WebSocketIncomingEventSchema, type WebSocketIncomingEvent } from '@/contracts/websocket';
 import type { FrontendChatMessage } from '@/contracts/chat';
 import { nanoid } from '@/lib/utils/formatters';
+import { coerceNormalizedProduct } from '@/lib/adapters/productAdapter';
 
 function now(): string {
     return new Date().toISOString();
@@ -29,6 +30,27 @@ export function adaptIncomingMessage(raw: string): FrontendChatMessage | null {
         return null;
     }
 
+    // Orchestration sends fixture-shaped products (current_price, stars, images.primary).
+    // Coerce before Zod so product_results validates.
+    if (
+        parsed &&
+        typeof parsed === 'object' &&
+        (parsed as { event?: string }).event === 'product_results' &&
+        Array.isArray((parsed as { products?: unknown }).products)
+    ) {
+        const pr = parsed as { event: string; products: unknown[]; summary?: string; session_id?: string };
+        const coerced = {
+            ...pr,
+            products: pr.products.map((item) => coerceNormalizedProduct(item)),
+        };
+        const result = WebSocketIncomingEventSchema.safeParse(coerced);
+        if (!result.success) {
+            console.warn('[Adapter] product_results after coerce:', result.error.issues);
+            return null;
+        }
+        return mapIncomingToFrontendMessage(result.data);
+    }
+
     const result = WebSocketIncomingEventSchema.safeParse(parsed);
     if (!result.success) {
         console.warn('[Adapter] Unknown WS event shape:', parsed, result.error.issues);
@@ -36,7 +58,10 @@ export function adaptIncomingMessage(raw: string): FrontendChatMessage | null {
     }
 
     const event: WebSocketIncomingEvent = result.data;
+    return mapIncomingToFrontendMessage(event);
+}
 
+function mapIncomingToFrontendMessage(event: WebSocketIncomingEvent): FrontendChatMessage | null {
     switch (event.event) {
         case 'status_update':
             return {
@@ -83,6 +108,12 @@ export function adaptIncomingMessage(raw: string): FrontendChatMessage | null {
                 image_url: event.image_url,
             };
 
+        case 'assistant_message':
+            return {
+                id: nanoid(), type: 'text', role: 'assistant', timestamp: now(),
+                content: event.content,
+            };
+
         case 'session_state':
             // Not a chat message — handled by sessionStore. Return null.
             return null;
@@ -98,3 +129,4 @@ export function adaptIncomingMessage(raw: string): FrontendChatMessage | null {
             return null;
     }
 }
+

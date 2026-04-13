@@ -4,6 +4,7 @@ Same interface as Amazon scraper - identical function signature and output schem
 Uses Playwright for browser automation with Walmart-specific DOM selectors.
 """
 
+import os
 import re
 import logging
 from typing import List, Dict, Optional
@@ -18,7 +19,9 @@ from scraper.browser.stealth import (
     random_delay,
     detect_captcha,
     get_stealth_browser_args,
+    playwright_headless,
 )
+from scraper.browser.captcha_resolve import resolve_or_continue
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +78,14 @@ async def search_walmart(
 
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(
-            headless=True,
+            headless=playwright_headless(),
             args=get_stealth_browser_args(),
         )
         context = await browser.new_context(
             user_agent=get_random_user_agent(),
             viewport={"width": 1366, "height": 768},
             locale="en-US",
+            timezone_id="America/Phoenix",
         )
         page = await context.new_page()
         await apply_stealth_scripts(page)
@@ -91,7 +95,7 @@ async def search_walmart(
                 page, query, max_results, max_price, min_rating
             )
         except Exception as e:
-            logger.error(f"Walmart search failed: {e}")
+            logger.error(f"Walmart search failed: {e}", exc_info=True)
         finally:
             await browser.close()
 
@@ -110,24 +114,44 @@ async def _scrape_search_results(
     search_url = f"https://www.walmart.com/search?q={query.replace(' ', '+')}"
 
     logger.info(f"Navigating to Walmart search: {query}")
-    await page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
+    try:
+        await page.goto(search_url, wait_until="domcontentloaded", timeout=45000)
+    except Exception as nav_err:
+        logger.error(f"Walmart navigation failed: {nav_err}")
+        return []
     await random_delay(2, 4)
 
+    page_title = await page.title()
+    page_url = page.url
+    logger.info(f"Walmart landed on: '{page_title}' | {page_url}")
+
     if await detect_captcha(page):
-        logger.warning("CAPTCHA detected on Walmart - returning empty results")
-        return [_captcha_error_product()]
+        logger.warning("CAPTCHA-like page on Walmart — trying 2Captcha / fallback")
+        solved = await resolve_or_continue(page)
+        if not solved and os.getenv("CLICKLESS_SKIP_CAPTCHA_CHECK", "").lower() not in (
+            "1",
+            "true",
+            "yes",
+        ):
+            return [_captcha_error_product()]
+        if not solved:
+            logger.warning("Continuing Walmart scrape after CAPTCHA (skip flag or no sitekey)")
 
     page_num = 1
     while len(products) < max_results:
         logger.info(f"Scraping Walmart page {page_num}...")
         sel = SELECTORS["search_results"]
 
-        # Try primary container, fallback to alt
-        items = await page.query_selector_all(sel["container"])
+        # Try broadest selector first: any element with data-item-id on the page
+        items = await page.query_selector_all("[data-item-id]")
+        if not items:
+            items = await page.query_selector_all(sel["container"])
         if not items:
             items = await page.query_selector_all(sel["container_alt"])
         if not items:
-            logger.warning("No search result items found on Walmart page")
+            logger.warning(
+                f"No Walmart items found (page={page_num}, title='{await page.title()}')"
+            )
             break
 
         for item in items:
@@ -163,7 +187,14 @@ async def _scrape_search_results(
                 await random_delay(2, 4)
                 page_num += 1
                 if await detect_captcha(page):
-                    break
+                    if await resolve_or_continue(page):
+                        continue
+                    if os.getenv("CLICKLESS_SKIP_CAPTCHA_CHECK", "").lower() not in (
+                        "1",
+                        "true",
+                        "yes",
+                    ):
+                        break
             else:
                 break
 
