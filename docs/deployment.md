@@ -55,7 +55,7 @@ Defined in `backend/docker-compose.yaml`.
 | `mongo` | mongo:7 | 27017 | `mongo_data` |
 | `postgres` | postgres:16 | 5432 | `pg_data` |
 | `redis` | redis:7-alpine | 6379 | — (ephemeral) |
-| `app` | Built from `backend/Dockerfile` | 8000 | — |
+| `app` | Built from `backend/Dockerfile` | 8002 (host) → 8000 (container) | — |
 
 ### Useful commands
 

@@ -3,10 +3,10 @@
 ## Endpoint
 
 ```
-WS /ws/chat/{session_id}
+WS /ws?user_id={user_id}
 ```
 
-`session_id` is a unique identifier for a conversation session, scoped to a single user interaction flow.
+The `user_id` query parameter is required. A legacy endpoint `/ws/chat/{session_id}` also exists for backwards compatibility.
 
 ---
 

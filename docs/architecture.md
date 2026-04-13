@@ -20,7 +20,7 @@ The core philosophy: automate the tedious parts (browsing, comparing, checking o
 |---|---|---|
 | **Presentation** | React/Next.js chat UI, WebSocket | User interaction, real-time status updates, product display cards, confirmation modals |
 | **Orchestration** | LangGraph state machine | Intent routing, state transitions, clarification loops, node sequencing |
-| **Intelligence** | LLM planner (GPT-4/Claude), recommendation engine | Natural language understanding, action planning, product ranking, preference extraction |
+| **Intelligence** | LLM planner (Qwen3 via OpenAI-compatible endpoint), recommendation engine | Natural language understanding, action planning, product ranking, preference extraction |
 | **Execution** | Playwright (async), browser contexts | Web scraping, product search, cart management, checkout automation |
 | **Data** | MongoDB, PostgreSQL, Redis | User profiles and preferences (Mongo), order audit trail (Postgres), session cache (Redis) |
 
@@ -34,7 +34,7 @@ The core philosophy: automate the tedious parts (browsing, comparing, checking o
 │                        (Next.js frontend)                    │
 └──────────────┬──────────────────────────┬───────────────────┘
                │ REST (auth, settings)     │ WebSocket
-               │                          │ /ws/chat/{session_id}
+               │                          │ /ws?user_id={user_id}
                ▼                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                     FastAPI Backend                          │
