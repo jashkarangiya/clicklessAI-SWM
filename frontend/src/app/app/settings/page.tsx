@@ -152,7 +152,7 @@ export default function SettingsPage() {
         />
 
         {/* Tab content panel */}
-        <Box style={{ flex: 1, overflowY: 'auto', paddingBottom: 40 }}>
+        <Box style={{ flex: 1, overflowY: 'auto', paddingBottom: 40, paddingRight: 16 }}>
 
           {/* ── Connections ── */}
           {activeTab === 'connections' && (
