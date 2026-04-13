@@ -22,7 +22,7 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { setSiteConnections, setAmazonSessionDetails } from '@/store/slices/sessionSlice';
 import { usePreferencesStore } from '@/stores/preferencesStore';
 import { useChatStore } from '@/stores/chatStore';
-import { MOCK_ORDERS, MOCK_PREFERENCES } from '@/lib/mocks/fixtures';
+import { useOrderStore } from '@/stores/orderStore';
 
 const TABS = [
   { value: 'connections', label: 'Connections', icon: <IconPlugConnected size={16} /> },
@@ -42,12 +42,11 @@ export default function SettingsPage() {
   const setExplicit = usePreferencesStore((s) => s.setExplicit);
   const resetPrefs  = usePreferencesStore((s) => s.reset);
   const clearHistory = useChatStore((s) => s.clearHistory);
+  const orders = useOrderStore((s) => s.orders);
 
-  const displayPrefs = preferences.explicit?.preferred_brands?.length
-    ? preferences : MOCK_PREFERENCES;
-  const exp     = displayPrefs.explicit!;
-  const imp     = displayPrefs.implicit!;
-  const weights = displayPrefs.weights!;
+  const exp     = preferences.explicit!;
+  const imp     = preferences.implicit!;
+  const weights = preferences.weights!;
 
   const handleConnect = (site: 'amazon' | 'walmart') => {
     if (site === 'amazon') {
@@ -152,7 +151,7 @@ export default function SettingsPage() {
         />
 
         {/* Tab content panel */}
-        <Box style={{ flex: 1, overflowY: 'auto', paddingBottom: 40, paddingRight: 16 }}>
+        <Box style={{ flex: 1, overflowY: 'auto', paddingBottom: 40 }}>
 
           {/* ── Connections ── */}
           {activeTab === 'connections' && (
@@ -300,7 +299,23 @@ export default function SettingsPage() {
 
           {/* ── Activity ── */}
           {activeTab === 'activity' && (
-            <PurchaseHistoryList orders={MOCK_ORDERS} />
+            orders.length > 0 ? (
+              <PurchaseHistoryList orders={orders} />
+            ) : (
+              <Box
+                style={{
+                  textAlign: 'center',
+                  padding: '3rem',
+                  backgroundColor: 'var(--cl-surface)',
+                  border: '1px solid var(--cl-border)',
+                  borderRadius: 14,
+                }}
+              >
+                <Text size="sm" style={{ color: 'var(--cl-text-muted)' }}>
+                  No orders yet. Orders placed through ClickLess AI will appear here.
+                </Text>
+              </Box>
+            )
           )}
 
           {/* ── Security ── */}

@@ -22,13 +22,19 @@ MAX_WEIGHT = 0.50   # no single weight can exceed this
 EMA_ALPHA = 0.10    # exponential moving average smoothing
 
 
+def _only_dict_products(products: list | None) -> list[dict]:
+    """LangGraph / scrapers must not insert None into `products`, but guard anyway."""
+    return [p for p in (products or []) if isinstance(p, dict)]
+
+
 # ── Individual dimension scores ───────────────────────────────────────────────
 
 def compute_price_score(product: dict, all_products: list) -> float:
     """Normalized inverse: cheapest product = 1.0, most expensive = 0.0."""
+    safe = _only_dict_products(all_products)
     prices = [
         p["pricing"]["current_price"]
-        for p in all_products
+        for p in safe
         if p.get("pricing", {}).get("current_price") is not None
     ]
     if len(prices) <= 1:
@@ -70,6 +76,7 @@ def compute_delivery_score(product: dict) -> float:
 
 def compute_preference_match_score(product: dict, user_prefs: dict) -> float:
     """Fraction of matching attributes; explicit prefs count double."""
+    user_prefs = user_prefs if isinstance(user_prefs, dict) else {}
     explicit = user_prefs.get("explicit", {})
     score = 0.0
     total = 0
@@ -121,6 +128,7 @@ def _price_within_budget(price: float, budget_label: str) -> bool:
 
 
 def _get_match_reasons(product: dict, user_prefs: dict) -> list[str]:
+    user_prefs = user_prefs if isinstance(user_prefs, dict) else {}
     explicit = user_prefs.get("explicit", {})
     reasons = []
     brand = (product.get("brand") or "").lower()
@@ -148,6 +156,9 @@ def _get_match_reasons(product: dict, user_prefs: dict) -> list[str]:
 
 def score_product(product: dict, all_products: list, user_prefs: dict, weights: dict | None = None) -> float:
     """Compute composite score and attach `scoring` sub-dict to the product in-place."""
+    if not isinstance(product, dict):
+        return 0.0
+    user_prefs = user_prefs if isinstance(user_prefs, dict) else {}
     w = {**DEFAULT_WEIGHTS, **(weights or {})}
     review_threshold = user_prefs.get("implicit", {}).get("review_count_threshold", 100)
 
@@ -176,6 +187,8 @@ def score_product(product: dict, all_products: list, user_prefs: dict, weights: 
 
 def rank_products(products: list, user_prefs: dict, weights: dict | None = None) -> list:
     """Score all products and return them sorted by composite_score descending."""
+    user_prefs = user_prefs if isinstance(user_prefs, dict) else {}
+    products = _only_dict_products(products)
     if not products:
         return []
     scored = [(score_product(p, products, user_prefs, weights), p) for p in products]
@@ -187,6 +200,7 @@ def rank_products(products: list, user_prefs: dict, weights: dict | None = None)
 
 def get_comparison_highlights(products: list) -> dict:
     """Return {cheapest, best_rated, fastest_delivery} product names."""
+    products = _only_dict_products(products)
     if not products:
         return {}
 
@@ -227,6 +241,7 @@ def adapt_weights(
         return current_weights
 
     w = {**DEFAULT_WEIGHTS, **current_weights}
+    all_products = _only_dict_products(all_products)
 
     # Detect if chosen product was cheapest / best-rated / fastest
     prices = [p.get("pricing", {}).get("current_price") or 9999 for p in all_products]

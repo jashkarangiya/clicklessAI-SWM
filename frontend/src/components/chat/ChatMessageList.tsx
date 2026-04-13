@@ -55,7 +55,7 @@ export function ChatMessageList({
         {messages.map((msg) => {
           if (msg.type === 'text') {
             if (msg.role === 'user') return <UserMessageBubble key={msg.id} content={msg.content} timestamp={msg.timestamp} />;
-            return <AssistantMessageBubble key={msg.id} content={msg.content} timestamp={msg.timestamp} />;
+            return <AssistantMessageBubble key={msg.id} content={msg.content} timestamp={msg.timestamp} isStreaming={msg.isStreaming} />;
           }
           if (msg.type === 'status') {
             // Transient status messages shown inline if they persist
@@ -133,7 +133,7 @@ export function ChatMessageList({
           }
           return null;
         })}
-        {isTyping && <TypingIndicator />}
+        {isTyping && !messages.some((m) => m.type === 'text' && m.isStreaming) && <TypingIndicator />}
         <div ref={bottomRef} />
       </Stack>
     </Box>

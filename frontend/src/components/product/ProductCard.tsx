@@ -122,7 +122,7 @@ export function ProductCard({ product, onBuy, onDetail }: ProductCardProps) {
         </Group>
 
         {/* Rating */}
-        {product.ratings && (
+        {product.ratings?.average != null && (
           <Group gap="xs" align="center">
             <Rating value={product.ratings.average} fractions={2} readOnly size="xs" color="yellow" />
             <Text size="xs" style={{ color: 'var(--cl-text-secondary)' }}>

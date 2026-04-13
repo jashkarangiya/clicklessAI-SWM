@@ -1,10 +1,33 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from app.models.conversation import StateEnvelope
 from app.services import conversation_service
+from app.services import chat_service
 
 router = APIRouter(tags=["conversations"])
 
+
+# ── Chat history endpoints (MUST come before /{session_id} wildcard) ──────────
+
+@router.get("/history/list", tags=["chat-history"])
+async def list_chat_sessions(user_id: str = Query(..., description="User ID")):
+    """Return recent sessions for a user — used by the sidebar."""
+    return await chat_service.list_sessions(user_id)
+
+
+@router.get("/history/{session_id}", tags=["chat-history"])
+async def get_chat_session(session_id: str):
+    """Return the full message list for a session — used to restore a conversation."""
+    messages = await chat_service.get_session_messages(session_id)
+    return {"session_id": session_id, "messages": messages}
+
+
+@router.delete("/history/{session_id}", status_code=204, tags=["chat-history"])
+async def delete_chat_session(session_id: str):
+    await chat_service.delete_session(session_id)
+
+
+# ── Legacy LangGraph state endpoints ─────────────────────────────────────────
 
 @router.post("/{session_id}", response_model=StateEnvelope, status_code=201)
 async def create_conversation(session_id: str, envelope: StateEnvelope):

@@ -4,12 +4,13 @@ Run with:  pytest tests/test_nodes.py -v
 
 All LLM calls are patched with unittest.mock so tests run offline.
 """
+import asyncio
 import json
 import copy
 import uuid
 import sys
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from pathlib import Path
 
 # Ensure project root is on PYTHONPATH
@@ -204,30 +205,81 @@ class TestComparisonHighlights:
 
 # ── Node tests ────────────────────────────────────────────────────────────────
 
+def _scraper_row_amazon(price: float, asin: str = "B0TEST12345") -> dict:
+    """Minimal row as returned by scraper.scrapers.amazon.search_amazon."""
+    return {
+        "title": "Test Headphones",
+        "price": price,
+        "original_price": 99.0,
+        "currency": "USD",
+        "rating": 4.5,
+        "review_count": 120,
+        "image_url": "https://example.com/p.jpg",
+        "product_url": f"https://www.amazon.com/dp/{asin}",
+        "delivery_estimate": "Tomorrow",
+        "prime": True,
+        "in_stock": True,
+        "source": "amazon",
+    }
+
+
+def _scraper_row_walmart(price: float) -> dict:
+    return {
+        "title": "Test Walmart Item",
+        "price": price,
+        "original_price": None,
+        "currency": "USD",
+        "rating": 4.0,
+        "review_count": 50,
+        "image_url": "https://example.com/w.jpg",
+        "product_url": "https://www.walmart.com/ip/123",
+        "delivery_estimate": "2 days",
+        "prime": False,
+        "in_stock": True,
+        "source": "walmart",
+    }
+
+
 class TestProductSearchNode:
-    def test_returns_products_for_headphones(self):
+    @patch("nodes.product_search.search_walmart", new_callable=AsyncMock)
+    @patch("nodes.product_search.search_amazon", new_callable=AsyncMock)
+    def test_returns_products_for_headphones(self, mock_amazon, mock_walmart):
         from nodes.product_search import product_search_node
+
+        mock_amazon.return_value = [_scraper_row_amazon(79.99)]
+        mock_walmart.return_value = [_scraper_row_walmart(44.0)]
         state = make_state()
         state["query"]["parsed"]["category"] = "headphones"
-        result = product_search_node(state)
-        assert len(result["products"]) > 0
+        result = asyncio.run(product_search_node(state))
+        assert len(result["products"]) == 2
         assert result["status"] == "completed"
+        assert result["products"][0]["pricing"]["current_price"] == 79.99
 
-    def test_budget_filter_under_50(self):
+    @patch("nodes.product_search.search_walmart", new_callable=AsyncMock)
+    @patch("nodes.product_search.search_amazon", new_callable=AsyncMock)
+    def test_budget_filter_under_50(self, mock_amazon, mock_walmart):
         from nodes.product_search import product_search_node
+
+        mock_amazon.return_value = [_scraper_row_amazon(29.99), _scraper_row_amazon(199.99)]
+        mock_walmart.return_value = []
         state = make_state()
         state["query"]["parsed"]["category"] = "headphones"
         state["query"]["parsed"]["budget"] = "under_50"
-        result = product_search_node(state)
-        for p in result["products"]:
-            assert p["pricing"]["current_price"] <= 50
+        result = asyncio.run(product_search_node(state))
+        assert len(result["products"]) == 1
+        assert result["products"][0]["pricing"]["current_price"] <= 50
 
-    def test_scrape_counts_populated(self):
+    @patch("nodes.product_search.search_walmart", new_callable=AsyncMock)
+    @patch("nodes.product_search.search_amazon", new_callable=AsyncMock)
+    def test_scrape_counts_populated(self, mock_amazon, mock_walmart):
         from nodes.product_search import product_search_node
+
+        mock_amazon.return_value = [_scraper_row_amazon(10.0)]
+        mock_walmart.return_value = [_scraper_row_walmart(20.0)]
         state = make_state()
-        result = product_search_node(state)
+        result = asyncio.run(product_search_node(state))
         counts = result["metadata"]["scrape_results_count"]
-        assert "amazon" in counts and "walmart" in counts
+        assert counts["amazon"] == 1 and counts["walmart"] == 1
 
 
 class TestNormalizeRankNode:

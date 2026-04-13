@@ -13,9 +13,14 @@ class Settings(BaseSettings):
     purchase_threshold_amount: float = 500.00
     confirmation_ttl_seconds: int = 900
     app_version: str = "0.1.0"
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    openai_api_key: str = ""
+    openai_base_url: str = "https://openai.rc.asu.edu/v1"
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 
 @lru_cache

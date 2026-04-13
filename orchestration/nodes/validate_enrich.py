@@ -11,7 +11,7 @@ Max 3 clarification questions per turn.
 """
 from langgraph.types import interrupt
 
-from state import AgentState
+from state import AgentState, normalize_agent_state
 from llm_client import chat_json
 from prompts import clarification_question_prompt
 from mock_api import get_user_preferences
@@ -20,7 +20,12 @@ CONFIDENCE_THRESHOLD = 0.70
 MAX_CLARIFICATIONS = 3
 
 REQUIRED_FIELDS: dict[str, list[str]] = {
-    "product_search": ["category"],
+    # "category" is intentionally NOT required here — intent_detection handles
+    # ambiguity clarification.  If category is still missing after that, it is
+    # inferred from the user message (_try_infer_category) or defaults to
+    # "electronics".  A second clarification question for the same field is
+    # confusing and should never happen.
+    "product_search": [],
     "refine_search": [],       # refinement is inferred from user message
     "purchase": ["product_id", "delivery_address", "payment_method"],
     "browse": [],
@@ -51,6 +56,7 @@ PREF_AUTOFILL_MAP: dict[str, tuple[str, str]] = {
 
 def validate_enrich_node(state: AgentState) -> AgentState:
     state["metadata"]["nodes_visited"].append("validate_enrich")
+    normalize_agent_state(state)
     intent = state["intent"]
 
     # Load fresh preferences
@@ -59,6 +65,14 @@ def validate_enrich_node(state: AgentState) -> AgentState:
 
     required = REQUIRED_FIELDS.get(intent, [])
     optional = NICE_TO_HAVE_FIELDS.get(intent, [])
+
+    # ── Infer category from user message before checking for missing fields ───
+    # This prevents a redundant clarification question when intent_detection
+    # already asked about ambiguity (or when the LLM simply missed the category
+    # for an obvious query like "compare iphone 17 and samsung galaxy s21").
+    if intent in ("product_search", "refine_search", "browse"):
+        _try_infer_category(state)
+
     missing = _find_missing_fields(state, required)
 
     # ── Auto-fill nice-to-have fields from preferences (always, no clarification) ──
@@ -166,11 +180,51 @@ def _apply_user_answer(state: AgentState, field: str, answer: str) -> None:
         parsed[field] = answer
 
 
+# Keyword → canonical category mapping for fast inference from the user message.
+_KEYWORD_CATEGORY: list[tuple[frozenset[str], str]] = [
+    (frozenset({"iphone", "galaxy", "pixel", "smartphone", "android", "mobile", "cellphone", "cell phone", "phone"}), "smartphone"),
+    (frozenset({"macbook", "laptop", "notebook", "chromebook", "ultrabook"}), "laptop"),
+    (frozenset({"ipad", "tablet"}), "tablet"),
+    (frozenset({"airpod", "headphone", "headset", "earbud", "earphone", "speaker"}), "headphones"),
+    (frozenset({"tv", "television", "oled", "qled", "4k tv"}), "tv"),
+    (frozenset({"monitor", "display"}), "monitor"),
+    (frozenset({"watch", "smartwatch"}), "smartwatch"),
+    (frozenset({"camera", "dslr", "mirrorless"}), "camera"),
+    (frozenset({"keyboard", "mouse", "mice"}), "computer accessories"),
+    (frozenset({"shirt", "tshirt", "t-shirt", "pants", "jeans", "jacket", "dress", "clothing", "clothes"}), "clothing"),
+    (frozenset({"shoe", "shoes", "sneaker", "sneakers", "boot", "boots"}), "shoes"),
+    (frozenset({"vacuum", "cleaner", "roomba"}), "vacuum"),
+    (frozenset({"printer"}), "printer"),
+    (frozenset({"router", "wifi", "wi-fi", "mesh"}), "router"),
+]
+
+
+def _try_infer_category(state: AgentState) -> None:
+    """
+    If category is not already set, attempt to infer it from the raw user
+    message using a fast keyword lookup.  Sets state["query"]["parsed"]["category"]
+    when a match is found.  Never overwrites an existing value.
+    """
+    parsed = state["query"].setdefault("parsed", {})
+    if parsed.get("category"):
+        return  # already filled — nothing to do
+
+    text = (state.get("user_message") or state["query"].get("raw") or "").lower()
+    import re
+    words = set(re.findall(r"[a-z0-9][\w\-]*", text))
+
+    for keywords, category in _KEYWORD_CATEGORY:
+        if words & keywords:
+            parsed["category"] = category
+            return
+
+
 def _apply_default(state: AgentState, field: str) -> None:
     """Apply a safe default when max clarification depth is reached."""
     defaults = {
         "budget": "no_limit",
         "sort_by": "relevance",
+        "category": "electronics",   # broad fallback — better than asking a 4th time
         "delivery_address": None,
         "payment_method": None,
     }

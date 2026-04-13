@@ -8,10 +8,12 @@
  * - Animated rotating placeholder (category examples)
  * - Trust lock + keyboard hints in one balanced row
  * - ⌘K focuses the input from anywhere on the page
+ * - Mic button for ElevenLabs speech-to-text
  */
 import { useRef, useState, useCallback, useEffect, KeyboardEvent } from 'react';
-import { Box, Textarea, ActionIcon, Text } from '@mantine/core';
-import { IconSend, IconSendOff, IconLock } from '@tabler/icons-react';
+import { Box, Textarea, ActionIcon, Text, Tooltip, Loader } from '@mantine/core';
+import { IconSend, IconSendOff, IconLock, IconMicrophone, IconMicrophoneOff } from '@tabler/icons-react';
+import { transcribeAudio, stopSpeaking } from '@/lib/api/elevenLabsService';
 
 const PLACEHOLDERS = [
   'Find a 4K TV under $900 that arrives by Friday…',
@@ -27,11 +29,15 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
-  const [value,     setValue]     = useState('');
-  const [isFocused, setIsFocused] = useState(false);
-  const [phIdx,     setPhIdx]     = useState(0);
-  const [phVisible, setPhVisible] = useState(true);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [value,          setValue]          = useState('');
+  const [isFocused,      setIsFocused]      = useState(false);
+  const [phIdx,          setPhIdx]          = useState(0);
+  const [phVisible,      setPhVisible]      = useState(true);
+  const [isRecording,    setIsRecording]    = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const textareaRef      = useRef<HTMLTextAreaElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef   = useRef<Blob[]>([]);
 
   // ── ⌘K / Ctrl+K → focus input from anywhere ─────────────────────────────
   useEffect(() => {
@@ -73,6 +79,44 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
       handleSend();
     }
   };
+
+  // ── Voice input (ElevenLabs STT) ─────────────────────────────────────────
+  const startRecording = useCallback(async () => {
+    stopSpeaking(); // stop any TTS before recording
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setIsTranscribing(true);
+        try {
+          const transcript = await transcribeAudio(blob);
+          if (transcript) setValue((v) => (v ? v + ' ' + transcript : transcript));
+        } catch (err) {
+          console.error('Transcription failed:', err);
+        } finally {
+          setIsTranscribing(false);
+          setTimeout(() => textareaRef.current?.focus(), 0);
+        }
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+    }
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    setIsRecording(false);
+  }, []);
 
   const canSend = !disabled && value.trim().length > 0;
 
@@ -197,6 +241,39 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
             },
           }}
         />
+
+        {/* Mic button (ElevenLabs STT) */}
+        <Tooltip
+          label={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing…' : 'Speak your message'}
+          position="top"
+          withArrow
+        >
+          <ActionIcon
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={isTranscribing || disabled}
+            size={38}
+            radius={9999}
+            aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
+            style={{
+              flexShrink: 0,
+              backgroundColor: isRecording
+                ? 'rgba(220, 38, 38, 0.12)'
+                : 'transparent',
+              border: isRecording
+                ? '1.5px solid rgba(220, 38, 38, 0.4)'
+                : '1.5px solid var(--cl-border)',
+              color: isRecording ? '#dc2626' : 'var(--cl-text-muted)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {isTranscribing
+              ? <Loader size={15} color="var(--cl-brand)" />
+              : isRecording
+                ? <IconMicrophoneOff size={17} />
+                : <IconMicrophone size={17} />
+            }
+          </ActionIcon>
+        </Tooltip>
 
         {/* Send button */}
         <ActionIcon

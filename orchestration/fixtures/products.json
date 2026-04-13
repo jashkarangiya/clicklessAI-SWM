@@ -178,5 +178,50 @@
     "attributes": {"type": "over-ear wired", "color": "black", "features": ["open-back", "audiophile", "detachable cable"], "weight": "240g"},
     "images": {"primary": "https://example.com/sennheiser-hd560s.jpg", "thumbnails": []},
     "scoring": null
+  },
+  {
+    "product_id": "prod-lap-001",
+    "source": "amazon",
+    "source_url": "https://www.amazon.com/dp/B0CX23V2ZK",
+    "source_product_id": "B0CX23V2ZK",
+    "name": "Apple MacBook Pro 16\" M3 Pro — 18GB RAM, 512GB SSD (Video Editing)",
+    "brand": "Apple",
+    "category": "laptops",
+    "pricing": {"current_price": 2399.00, "original_price": 2499.00, "currency": "USD", "on_sale": true, "discount_pct": 4.0},
+    "ratings": {"stars": 4.8, "review_count": 3200, "review_summary": null},
+    "delivery": {"estimated_date": "2026-04-11", "shipping_cost": 0.0, "prime_eligible": true, "in_stock": true},
+    "attributes": {"type": "creator laptop", "color": "space gray", "features": ["M3 Pro", "Liquid Retina XDR", "22hr battery"], "weight": "2.14 kg"},
+    "images": {"primary": "https://example.com/mbp16-m3.jpg", "thumbnails": []},
+    "scoring": null
+  },
+  {
+    "product_id": "prod-lap-002",
+    "source": "walmart",
+    "source_url": "https://www.walmart.com/ip/Dell-XPS-15-9530/112233445",
+    "source_product_id": "112233445",
+    "name": "Dell XPS 15 9530 OLED — Intel Core i7, RTX 4050, 32GB RAM",
+    "brand": "Dell",
+    "category": "laptops",
+    "pricing": {"current_price": 1799.00, "original_price": 1999.00, "currency": "USD", "on_sale": true, "discount_pct": 10.0},
+    "ratings": {"stars": 4.5, "review_count": 890, "review_summary": null},
+    "delivery": {"estimated_date": "2026-04-12", "shipping_cost": 0.0, "prime_eligible": false, "in_stock": true},
+    "attributes": {"type": "mobile workstation", "color": "platinum silver", "features": ["OLED 3.5K", "CUDA", "Creator ready"], "weight": "1.86 kg"},
+    "images": {"primary": "https://example.com/dell-xps15.jpg", "thumbnails": []},
+    "scoring": null
+  },
+  {
+    "product_id": "prod-lap-003",
+    "source": "amazon",
+    "source_url": "https://www.amazon.com/dp/B0CWD4K6X1",
+    "source_product_id": "B0CWD4K6X1",
+    "name": "ASUS ProArt Studiobook 16\" — AMD Ryzen 9, RTX 4070, calibrated display",
+    "brand": "ASUS",
+    "category": "laptops",
+    "pricing": {"current_price": 2199.99, "original_price": 2399.99, "currency": "USD", "on_sale": true, "discount_pct": 8.3},
+    "ratings": {"stars": 4.4, "review_count": 410, "review_summary": null},
+    "delivery": {"estimated_date": "2026-04-10", "shipping_cost": 0.0, "prime_eligible": true, "in_stock": true},
+    "attributes": {"type": "creator laptop", "color": "black", "features": ["color-accurate display", "ISV certified", "SD Express"], "weight": "2.4 kg"},
+    "images": {"primary": "https://example.com/asus-proart16.jpg", "thumbnails": []},
+    "scoring": null
   }
 ]

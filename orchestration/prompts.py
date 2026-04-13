@@ -16,6 +16,11 @@ Examples (input → JSON output):
 - "I prefer Sony" → {"intent":"pref_update","entities":{"preferred_brands":["Sony"]},"is_ambiguous":false,"ambiguity_reason":null}
 - "get me something nice" → {"intent":"product_search","entities":{"category":null},"is_ambiguous":true,"ambiguity_reason":"category is unclear"}
 - "hello" → {"intent":"chat","entities":{},"is_ambiguous":false,"ambiguity_reason":null}
+- "compare iphone 17 and samsung galaxy s21" → {"intent":"product_search","entities":{"category":"smartphone","attributes":{"comparison":"iphone 17 vs samsung galaxy s21"},"budget":null,"brand_pref":null,"sort_by":null},"is_ambiguous":false,"ambiguity_reason":null}
+- "compare sony wh-1000xm5 vs bose qc45" → {"intent":"product_search","entities":{"category":"headphones","attributes":{"comparison":"sony wh-1000xm5 vs bose qc45"},"budget":null,"brand_pref":null,"sort_by":null},"is_ambiguous":false,"ambiguity_reason":null}
+- "iphone 17 pro max" → {"intent":"product_search","entities":{"category":"smartphone","attributes":{},"budget":null,"brand_pref":"Apple","sort_by":null},"is_ambiguous":false,"ambiguity_reason":null}
+- "samsung galaxy s21" → {"intent":"product_search","entities":{"category":"smartphone","attributes":{},"budget":null,"brand_pref":"Samsung","sort_by":null},"is_ambiguous":false,"ambiguity_reason":null}
+- "macbook pro 14 inch" → {"intent":"product_search","entities":{"category":"laptop","attributes":{"size":"14 inch"},"budget":null,"brand_pref":"Apple","sort_by":null},"is_ambiguous":false,"ambiguity_reason":null}
 """
 
 
@@ -28,6 +33,11 @@ Classify the user's message into one of these intents:
 Extract any shopping entities mentioned: category, attributes (type, color, style, etc.), budget, brand_pref, sort_by.
 
 Conversation context is critical. "yes buy it" after product results means purchase intent, not chat.
+
+IMPORTANT rules for ambiguity:
+- Well-known product model names (iPhone, Galaxy, MacBook, AirPods, Sony WH-*, Bose QC*, etc.) ALWAYS imply a clear category — never mark these as ambiguous.
+- "compare X and Y" queries are NEVER ambiguous — extract category from the product names and set brand_pref to null (do not pick a side).
+- Only set is_ambiguous=true when you genuinely cannot infer ANY useful category or intent, e.g. "get me something nice" or "buy it" with no prior context.
 
 {INTENT_EXAMPLES}
 
@@ -49,7 +59,8 @@ Respond ONLY with a JSON object:
     for turn in conversation_history[-6:]:  # last 6 turns for context
         messages.append(turn)
 
-    user_content = f"User preferences summary: {user_prefs.get('explicit', {})}\n\nUser message: {user_message}"
+    prefs = user_prefs if isinstance(user_prefs, dict) else {}
+    user_content = f"User preferences summary: {prefs.get('explicit', {})}\n\nUser message: {user_message}"
     messages.append({"role": "user", "content": user_content})
     return messages
 
@@ -91,6 +102,8 @@ Keep it conversational, concise, and preference-aware. Do NOT list specs robotic
     top3 = products[:3]
     product_summary = []
     for i, p in enumerate(top3):
+        if not isinstance(p, dict):
+            continue
         product_summary.append({
             "rank": i + 1,
             "name": p.get("name", ""),
@@ -104,8 +117,9 @@ Keep it conversational, concise, and preference-aware. Do NOT list specs robotic
             "match_reasons": p.get("scoring", {}).get("match_reasons", []),
         })
 
-    user_content = f"""User preferences: {user_prefs.get('explicit', {})}
-Implicit patterns: {user_prefs.get('implicit', {})}
+    prefs = user_prefs if isinstance(user_prefs, dict) else {}
+    user_content = f"""User preferences: {prefs.get('explicit', {})}
+Implicit patterns: {prefs.get('implicit', {})}
 
 Ranked products:
 {product_summary}

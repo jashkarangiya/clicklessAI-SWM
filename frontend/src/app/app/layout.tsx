@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShellLayout } from '@/components/chat/ChatShell';
 import { useAppSelector } from '@/store/hooks';
+import { ClicklessSocketProvider } from '@/providers/ClicklessSocketProvider';
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -24,5 +25,11 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
   // Prevent content flash while redirect is pending
   if (!token) return null;
 
-  return <AppShellLayout>{children}</AppShellLayout>;
+  // ClicklessSocketProvider wraps the whole shell so the WS connection persists
+  // across Chat → Settings navigation (badge stays accurate, no reconnect on nav)
+  return (
+    <ClicklessSocketProvider>
+      <AppShellLayout>{children}</AppShellLayout>
+    </ClicklessSocketProvider>
+  );
 }

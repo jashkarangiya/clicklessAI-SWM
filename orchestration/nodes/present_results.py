@@ -4,7 +4,7 @@ for the user to select a product, refine, or exit.
 """
 from langgraph.types import interrupt
 
-from state import AgentState
+from state import AgentState, normalize_agent_state
 from llm_client import chat
 from prompts import comparison_generation_prompt
 from scoring import get_comparison_highlights
@@ -13,6 +13,7 @@ MAX_DISPLAYED = 5
 
 
 def present_results_node(state: AgentState) -> AgentState:
+    normalize_agent_state(state)
     state["metadata"]["nodes_visited"].append("present_results")
 
     products = state.get("products", [])[:MAX_DISPLAYED]

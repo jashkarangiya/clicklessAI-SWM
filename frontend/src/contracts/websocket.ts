@@ -4,7 +4,7 @@
  * Typed discriminated unions for all incoming/outgoing WebSocket messages.
  */
 import { z } from 'zod';
-import { NormalizedProductSchema } from './product';
+import { NormalizedProductSchema, type NormalizedProduct } from './product';
 import { PurchaseConfirmationSchema } from './purchase';
 import { ClarificationSchema } from './chat';
 
@@ -68,6 +68,29 @@ export const ConnectionStatusEventSchema = BaseIncoming.extend({
     message: z.string().optional(),
 });
 
+// Backend sends plain LLM text responses (e.g. cart confirmation, direct-buy result)
+export const AssistantMessageEventSchema = BaseIncoming.extend({
+    event: z.literal('assistant_message'),
+    content: z.string(),
+});
+
+// Streaming LLM responses — three-phase protocol
+export const StreamStartEventSchema = BaseIncoming.extend({
+    event: z.literal('stream_start'),
+    message_id: z.string(),
+});
+
+export const StreamTokenEventSchema = BaseIncoming.extend({
+    event: z.literal('stream_token'),
+    message_id: z.string(),
+    token: z.string(),
+});
+
+export const StreamEndEventSchema = BaseIncoming.extend({
+    event: z.literal('stream_end'),
+    message_id: z.string(),
+});
+
 export const WebSocketIncomingEventSchema = z.discriminatedUnion('event', [
     StatusUpdateEventSchema,
     ProductResultsEventSchema,
@@ -78,12 +101,17 @@ export const WebSocketIncomingEventSchema = z.discriminatedUnion('event', [
     SuccessEventSchema,
     SessionStateEventSchema,
     ConnectionStatusEventSchema,
+    AssistantMessageEventSchema,
+    StreamStartEventSchema,
+    StreamTokenEventSchema,
+    StreamEndEventSchema,
 ]);
 export type WebSocketIncomingEvent = z.infer<typeof WebSocketIncomingEventSchema>;
 
 // ─── Outgoing Events (client → server) ────────────────────────────────────
 export type WebSocketOutgoingEvent =
-    | { event: 'user_message'; session_id: string; content: string }
+    | { event: 'user_message'; session_id: string; content: string; user_id?: string }
     | { event: 'clarification_reply'; session_id: string; option_id?: string; free_text?: string }
     | { event: 'purchase_confirm'; session_id: string; confirmation_id: string; confirmed: boolean }
+    | { event: 'direct_buy'; session_id: string; user_id: string; product: NormalizedProduct; confirmation_id: string }
     | { event: 'ping' };
