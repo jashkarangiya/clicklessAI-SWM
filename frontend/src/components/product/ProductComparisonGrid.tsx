@@ -6,6 +6,8 @@
  * Includes comparison highlights strip: cheapest, best rated, fastest delivery.
  */
 import { useState, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Box, Stack, Text, SimpleGrid, Badge, Group, ActionIcon, Tooltip, Loader } from '@mantine/core';
 import { IconTag, IconStar, IconTruck, IconVolume, IconPlayerStop } from '@tabler/icons-react';
 import type { NormalizedProduct } from '@/contracts/product';
@@ -72,9 +74,9 @@ export function ProductComparisonGrid({ products, summary, onBuy, onDetail }: Pr
             padding: '12px 16px',
           }}
         >
-          <Text size="sm" style={{ color: 'var(--cl-text-secondary)', lineHeight: 1.6 }}>
-            {summary}
-          </Text>
+          <div className="cl-markdown">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+          </div>
           <Box style={{ display: 'flex', alignItems: 'center', marginTop: 6 }}>
             <Tooltip
               label={speakState === 'playing' ? 'Stop' : speakState === 'loading' ? 'Loading audio…' : 'Read aloud'}
@@ -135,6 +137,20 @@ export function ProductComparisonGrid({ products, summary, onBuy, onDetail }: Pr
           <ProductCard key={p.product_id} product={p} onBuy={onBuy} onDetail={onDetail} />
         ))}
       </SimpleGrid>
+      <style>{`
+        .cl-markdown {
+          font-size: 0.875rem;
+          color: var(--cl-text-secondary);
+          line-height: 1.6;
+          word-break: break-word;
+        }
+        .cl-markdown p { margin: 0 0 0.5em; }
+        .cl-markdown p:last-child { margin-bottom: 0; }
+        .cl-markdown strong { font-weight: 700; color: var(--cl-text-primary); }
+        .cl-markdown em { font-style: italic; }
+        .cl-markdown ul, .cl-markdown ol { padding-left: 1.4em; margin: 0.4em 0 0.6em; }
+        .cl-markdown li { margin-bottom: 0.2em; }
+      `}</style>
     </Stack>
   );
 }
