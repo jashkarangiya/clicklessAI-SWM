@@ -193,6 +193,30 @@ _GENERIC_CATEGORIES = frozenset({
 })
 
 
+def _extract_comparison_products(comparison_str: str) -> list[str]:
+    """
+    Split a comparison string like 'iphone 17 pro max vs samsung galaxy s25 ultra'
+    into individual product name queries.
+    """
+    parts = re.split(r'\s+(?:vs\.?|versus|and)\s+', comparison_str, flags=re.IGNORECASE)
+    return [p.strip() for p in parts if len(p.strip()) > 2]
+
+
+def _pick_best_match(products: list[dict], query: str) -> dict | None:
+    """Return the product whose title has the most keyword overlap with the query."""
+    if not products:
+        return None
+    stop = {"the", "and", "for", "with", "a", "an", "in", "of", "to"}
+    query_words = set(re.findall(r"[a-z0-9]+", query.lower())) - stop
+    best, best_score = products[0], -1
+    for p in products:
+        title_words = set(re.findall(r"[a-z0-9]+", (p.get("name") or "").lower()))
+        score = len(query_words & title_words)
+        if score > best_score:
+            best, best_score = p, score
+    return best
+
+
 def _build_search_query(parsed: dict[str, Any], user_message: str) -> str:
     """
     Compose a retailer search string: brand + category + attributes.
@@ -202,22 +226,28 @@ def _build_search_query(parsed: dict[str, Any], user_message: str) -> str:
     generic to produce a useful query (e.g. category="electronics" with no
     brand or attributes — happens often for comparison queries).
     """
+    # Comparison queries always use the raw user message — the model names
+    # in the message ("iphone 17 pro max vs samsung galaxy s25 ultra") are
+    # better search terms than anything we can reconstruct from parsed entities.
+    attrs = parsed.get("attributes") or {}
+    if attrs.get("comparison"):
+        return (user_message or "").strip()
+
     parts: list[str] = []
     if parsed.get("brand_pref"):
         parts.append(str(parsed["brand_pref"]))
     category = (parsed.get("category") or "").strip()
     if category:
         parts.append(category)
-    for v in (parsed.get("attributes") or {}).values():
+    for k, v in attrs.items():
         if v and str(v).lower() not in ("comparison", "compare"):
             parts.append(str(v))
     if category.lower() in _UNLOCKED_CATEGORIES:
         parts.append("unlocked")
     q = " ".join(parts).strip()
 
-    # If the only thing we built is a generic category word, the raw user
-    # message is a much better search query (e.g. "compare iphone 17 and
-    # samsung galaxy s21" → Amazon search for the exact model names).
+    # If the only thing we built is a generic category word, fall back to the
+    # raw user message (e.g. category="electronics" with no brand/attributes).
     if not q or q.lower() in _GENERIC_CATEGORIES:
         return (user_message or "").strip()
     return q
@@ -401,6 +431,50 @@ async def product_search_node(state: AgentState) -> AgentState:
     _log.info("[product_search] query=%r dept=%s title_terms=%s", search_q, department, title_terms)
 
     products: list = []
+
+    # ── Comparison mode: search each product independently in parallel ─────────
+    attrs = parsed.get("attributes") or {}
+    comparison_str = attrs.get("comparison", "")
+    if comparison_str:
+        product_names = _extract_comparison_products(comparison_str)
+        _log.info("[product_search] comparison mode: %d products → %s", len(product_names), product_names)
+        if len(product_names) >= 2:
+            try:
+                loop = asyncio.get_running_loop()
+                with concurrent.futures.ThreadPoolExecutor(max_workers=len(product_names)) as pool:
+                    futs = [
+                        loop.run_in_executor(
+                            pool, _run_http_scraper, search_amazon_http,
+                            name, 6, None, department
+                        )
+                        for name in product_names
+                    ]
+                    per_product = await asyncio.gather(*futs, return_exceptions=True)
+
+                comparison_products: list = []
+                for name, result in zip(product_names, per_product):
+                    if isinstance(result, Exception):
+                        _log.error("[product_search] comparison search %r failed: %r", name, result)
+                        continue
+                    candidates = []
+                    base = len(comparison_products)
+                    for j, row in enumerate(result):
+                        candidates.append(_scraper_row_to_product(row, base + j))
+                    candidates = [p for p in candidates if not _is_junk_product(p)]
+                    best = _pick_best_match(candidates, name)
+                    if best:
+                        comparison_products.append(best)
+                        _log.info("[product_search] comparison: %r → %r", name, best.get("name", "?"))
+
+                if comparison_products:
+                    state["products"] = comparison_products
+                    state["status"] = "completed"
+                    state["metadata"]["scrape_results_count"] = {"amazon": len(comparison_products)}
+                    state["metadata"]["is_comparison"] = True
+                    return state
+            except Exception as exc:
+                _log.error("[product_search] comparison mode failed, falling back: %r", exc)
+                state["errors"].append({"category": "retryable", "message": str(exc)})
 
     try:
         loop = asyncio.get_running_loop()

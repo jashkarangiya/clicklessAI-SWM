@@ -132,6 +132,55 @@ Write the comparison."""
     ]
 
 
+# ── Head-to-head comparison prompt ──────────────────────────────────────────
+
+def head_to_head_comparison_prompt(products: list, user_prefs: dict) -> list[dict]:
+    """
+    Generates a strict head-to-head comparison between exactly the requested products.
+    Used when the user explicitly asked to compare specific models.
+    """
+    system = """You are a shopping assistant doing a direct head-to-head product comparison.
+The user asked to compare specific products. Your job:
+1. Compare ONLY the products provided — do not suggest alternatives.
+2. Highlight the key differences: price, specs/features, ratings, and value for money.
+3. Give a clear verdict: which one wins and WHY, in one sentence.
+4. End with: "Want me to go with the [winner]?"
+
+CRITICAL RULES:
+- The product data you receive IS current and accurate — treat every price, rating, and product name as real and verified.
+- NEVER mention your training data, knowledge cutoff, release dates, or whether a product "exists" or is "available". If it's in the data, it's real.
+- NEVER speculate about whether something is "overpriced for a renewed listing" or question the data. Take prices and specs at face value.
+- Be specific and concrete. Reference actual prices and ratings from the data provided.
+- Keep it to 3-5 sentences total."""
+
+    product_summary = []
+    for i, p in enumerate(products):
+        if not isinstance(p, dict):
+            continue
+        product_summary.append({
+            "name": p.get("name", ""),
+            "price": p.get("pricing", {}).get("current_price"),
+            "rating": p.get("ratings", {}).get("stars"),
+            "review_count": p.get("ratings", {}).get("review_count"),
+            "source": p.get("source", ""),
+            "composite_score": (p.get("scoring") or {}).get("composite_score"),
+            "match_reasons": (p.get("scoring") or {}).get("match_reasons", []),
+        })
+
+    prefs = user_prefs if isinstance(user_prefs, dict) else {}
+    user_content = f"""User preferences: {prefs.get('explicit', {})}
+
+Products to compare (head-to-head):
+{product_summary}
+
+Write the head-to-head comparison and give a clear verdict."""
+
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_content},
+    ]
+
+
 # ── Update Preferences – Preference extraction ───────────────────────────────
 
 def preference_extraction_prompt(conversation_turns: list, chosen_product: dict | None, rejected_products: list) -> list[dict]:
