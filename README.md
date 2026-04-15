@@ -1,41 +1,164 @@
-# ClickLess AI — Semantic Web Mining Project
+# ClickLess AI
 
-AI-powered conversational shopping assistant that automates product search, comparison, and purchase across retail sites using a LangGraph orchestration pipeline, Playwright scraping, and a real-time chat frontend.
+> **Shop by describing what you want. ClickLess finds it, compares it, and checks out — pausing for your confirmation before every purchase.**
 
-## What it does
+ClickLess AI is a human-in-the-loop conversational shopping platform. A user types what they want to buy; the system detects intent, enriches missing fields from user preferences, and searches Amazon + Walmart simultaneously. Ranked results are returned in a comparison grid with LLM-generated reasoning. The user can initiate a purchase — system navigates checkout via Playwright with a hard confirmation gate before placing any order. Preferences are learned over time to reduce friction on future turns.
 
-- User types a natural language request ("Find me Sony headphones under $100")
-- System detects intent, enriches missing fields from user preferences, and searches Amazon + Walmart in parallel
-- Ranked results are returned in a comparison grid with LLM-generated reasoning
-- User can initiate a purchase — system navigates checkout via Playwright with a hard confirmation gate before placing any order
-- Preferences are learned over time to reduce friction on future turns
+---
 
-## Project Structure
+## How it works
 
 ```
-clicklessAI-SWM/
-├── backend/        → FastAPI API server + WebSocket handler
-├── frontend/       → Next.js chat UI
-├── orchestration/  → LangGraph pipeline (intent, search, ranking, purchase)
-├── scraper/        → Playwright scrapers for Amazon and Walmart
-├── database/       → Database layer reference
-├── docs/           → Architecture, data model, protocol, deployment docs
-├── README.md
-├── CONTRIBUTING.md
-└── RULES.md
+User message
+  └─► FastAPI (WebSocket)
+        └─► LangGraph orchestration
+              ├─► Intent detection + validation
+              ├─► Playwright scraper (Amazon + Walmart in parallel)
+              ├─► Preference-weighted ranking  (Qwen3 LLM reasoning)
+              └─► Purchase confirmation gate ──► Playwright checkout
+                        ↑
+              No purchase without explicit user confirmation
 ```
 
-## Tech Stack
+Full architecture detail: [`docs/architecture.md`](docs/architecture.md)
+
+---
+
+## Tech stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 15 (App Router), Mantine UI, Redux Toolkit |
-| Backend | FastAPI + Uvicorn, Python 3.11 |
-| Orchestration | LangGraph, OpenAI-compatible LLM (Qwen3) |
-| Scraping | Playwright (async), Chromium |
-| Databases | MongoDB (users/conversations), PostgreSQL (orders), Redis (cache/sessions) |
-| Real-time | WebSocket (`/ws`) |
-| TTS/STT | ElevenLabs API |
+| **Frontend** | Next.js 15 (App Router), React, Mantine UI, Redux Toolkit, Zustand |
+| **Backend** | FastAPI + Uvicorn, Python 3.11 |
+| **Orchestration** | LangGraph, OpenAI-compatible LLM (Qwen3) |
+| **Scraping** | Playwright (async, parallel per site), Chromium |
+| **Databases** | MongoDB (users + conversations), PostgreSQL (orders), Redis (cache + sessions) |
+| **Real-time** | WebSocket (`/ws/chat/{session_id}`) |
+| **TTS / STT** | ElevenLabs API |
+| **Containerisation** | Docker + Docker Compose |
+
+---
+
+## Repository structure
+
+```
+clicklessAI-SWM/
+├── frontend/           Next.js chat UI
+│   └── README.md       → Frontend setup guide
+├── backend/            FastAPI API server + WebSocket handler
+│   ├── app/            Routers, models, services, DB clients
+│   ├── openapi.yaml    Full OpenAPI 3.0 spec
+│   ├── docker-compose.yaml
+│   └── README.md       → Backend setup guide
+├── orchestration/      LangGraph pipeline (intent, search, ranking, purchase)
+│   ├── graph.py        Node + edge definitions
+│   ├── nodes/          One file per LangGraph node
+│   ├── state.py        StateEnvelope definition
+│   └── scoring.py      Preference-weighted product scoring
+├── scraper/            Playwright scrapers for Amazon and Walmart
+├── database/           Database schema / migration helpers
+├── docs/               Shared technical documentation (see below)
+├── CONTRIBUTING.md     Branch and PR workflow
+├── RULES.md            Project rules
+└── README.md           ← you are here
+```
+
+---
+
+## Quick start
+
+### Prerequisites
+
+- **Node.js 20+** and npm (for frontend)
+- **Python 3.11+** (for backend + orchestration)
+- **Docker + Docker Compose** (for databases)
+
+---
+
+### 1 — Clone
+
+```bash
+git clone https://github.com/jashkarangiya/clicklessAI-SWM.git
+cd clicklessAI-SWM
+```
+
+### 2 — Start the databases
+
+```bash
+cd backend
+docker compose up mongo postgres redis -d
+```
+
+This starts MongoDB (27017), PostgreSQL (5432), and Redis (6379) with persistent volumes.
+
+### 3 — Backend
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env             # fill in secrets
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8002
+```
+
+API available at `http://localhost:8002`  
+Interactive docs: `http://localhost:8002/docs`
+
+> **Critical env vars:** `SESSION_ENCRYPTION_KEY` (must be exactly 32 bytes) and `APP_SECRET_KEY`. Change both from their `changeme` defaults in any non-local environment. See [`docs/deployment.md`](docs/deployment.md) for the full variable reference.
+
+### 4 — Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+App available at `http://localhost:3000` (`.env.local` is pre-configured to connect to port 8002)
+
+### Full stack with Docker Compose
+
+```bash
+cd backend
+docker compose up --build
+```
+
+### Seed sample data (optional)
+
+```bash
+# Databases must be running first
+cd backend
+python scripts/seed_data.py
+```
+
+---
+
+## Documentation
+
+| Document | What it covers |
+|---|---|
+| [`docs/architecture.md`](docs/architecture.md) | System diagram, layer breakdown, request flows (chat turn, clarification loop, purchase confirmation), inter-team integration contracts |
+| [`docs/langgraph.md`](docs/langgraph.md) | Every LangGraph node and edge, clarification loop design, node I/O specs, error recovery strategy, Playwright anti-bot resilience |
+| [`docs/data-model.md`](docs/data-model.md) | `UserDocument`, `NormalizedProduct`, `StateEnvelope`, `OrderRecord`, Redis key schema, preference scoring model |
+| [`docs/websocket-protocol.md`](docs/websocket-protocol.md) | WebSocket endpoint, message format, all fields, status/intent enums, typical turn sequences (search, clarification, purchase, price-change abort) |
+| [`docs/deployment.md`](docs/deployment.md) | Docker Compose services, all environment variables, DB setup, health check endpoints, security considerations, production checklist |
+| [`backend/README.md`](backend/README.md) | Backend-specific local setup, project layout, API route summary |
+| [`backend/openapi.yaml`](backend/openapi.yaml) | Full OpenAPI 3.0 spec for all REST endpoints |
+
+---
+
+## Key design principles
+
+1. **No purchase without explicit confirmation.** Every order goes through a hard confirmation gate — the user must approve the exact product, price, address, and payment method before Playwright touches checkout.
+
+2. **Clarification over assumption.** When a query is ambiguous, the system asks a targeted question (up to 3 per turn) rather than guessing. Over time it learns enough about the user to need fewer questions.
+
+3. **Credentials are never stored.** The user logs in to Amazon/Walmart themselves via a visible browser window. Only the resulting encrypted session cookies are stored — never usernames or passwords.
+
+4. **Parallel scraping with adaptive ranking.** Amazon and Walmart are scraped simultaneously via `asyncio.gather()`. Results are ranked by a preference-weighted composite score (price × 0.30, rating × 0.25, delivery × 0.20, preference match × 0.25). Weights adapt after every completed interaction.
+
+---
 
 ## Team
 
@@ -47,55 +170,18 @@ clicklessAI-SWM/
 | Backend / API / Database | Khwahish Patel |
 | Docs | Shared |
 
-## Quick Start
-
-### 1 — Clone
-
-```bash
-git clone https://github.com/jashkarangiya/clicklessAI-SWM.git
-cd clicklessAI-SWM
-```
-
-### 2 — Start databases
-
-```bash
-cd backend
-docker compose up mongo postgres redis -d
-```
-
-### 3 — Start the backend
-
-```bash
-cd backend
-pip install -r requirements.txt
-cp .env.example .env          # fill in secrets
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8002
-```
-
-Backend available at `http://localhost:8002` · API docs at `http://localhost:8002/docs`
-
-### 4 — Start the frontend
-
-```bash
-cd frontend
-npm install
-# .env.local is already configured for local dev (port 8002)
-npm run dev
-```
-
-Frontend available at `http://localhost:3000`
-
-## Documentation
-
-| Doc | Description |
-|---|---|
-| [docs/architecture.md](docs/architecture.md) | System design, layer breakdown, request flows |
-| [docs/langgraph.md](docs/langgraph.md) | LangGraph node specifications and state transitions |
-| [docs/websocket-protocol.md](docs/websocket-protocol.md) | WebSocket event protocol reference |
-| [docs/data-model.md](docs/data-model.md) | All data schemas (User, Product, Order, StateEnvelope) |
-| [docs/deployment.md](docs/deployment.md) | Environment variables, Docker Compose, production checklist |
-| [backend/README.md](backend/README.md) | Backend-specific setup and API overview |
+---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow and [RULES.md](RULES.md) for project rules.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the branch naming convention and PR workflow.  
+See [`RULES.md`](RULES.md) for project-wide rules.
+
+Short version:
+
+```bash
+git checkout -b feature/your-change   # branch from main
+# ... make changes ...
+git push origin feature/your-change
+# open a Pull Request — 1 approval required to merge
+```
