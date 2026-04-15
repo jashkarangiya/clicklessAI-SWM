@@ -16,6 +16,11 @@ Examples (input → JSON output):
 - "I prefer Sony" → {"intent":"pref_update","entities":{"preferred_brands":["Sony"]},"is_ambiguous":false,"ambiguity_reason":null}
 - "get me something nice" → {"intent":"product_search","entities":{"category":null},"is_ambiguous":true,"ambiguity_reason":"category is unclear"}
 - "hello" → {"intent":"chat","entities":{},"is_ambiguous":false,"ambiguity_reason":null}
+- "compare iphone 17 and samsung galaxy s21" → {"intent":"product_search","entities":{"category":"smartphone","attributes":{"comparison":"iphone 17 vs samsung galaxy s21"},"budget":null,"brand_pref":null,"sort_by":null},"is_ambiguous":false,"ambiguity_reason":null}
+- "compare sony wh-1000xm5 vs bose qc45" → {"intent":"product_search","entities":{"category":"headphones","attributes":{"comparison":"sony wh-1000xm5 vs bose qc45"},"budget":null,"brand_pref":null,"sort_by":null},"is_ambiguous":false,"ambiguity_reason":null}
+- "iphone 17 pro max" → {"intent":"product_search","entities":{"category":"smartphone","attributes":{},"budget":null,"brand_pref":"Apple","sort_by":null},"is_ambiguous":false,"ambiguity_reason":null}
+- "samsung galaxy s21" → {"intent":"product_search","entities":{"category":"smartphone","attributes":{},"budget":null,"brand_pref":"Samsung","sort_by":null},"is_ambiguous":false,"ambiguity_reason":null}
+- "macbook pro 14 inch" → {"intent":"product_search","entities":{"category":"laptop","attributes":{"size":"14 inch"},"budget":null,"brand_pref":"Apple","sort_by":null},"is_ambiguous":false,"ambiguity_reason":null}
 """
 
 
@@ -28,6 +33,11 @@ Classify the user's message into one of these intents:
 Extract any shopping entities mentioned: category, attributes (type, color, style, etc.), budget, brand_pref, sort_by.
 
 Conversation context is critical. "yes buy it" after product results means purchase intent, not chat.
+
+IMPORTANT rules for ambiguity:
+- Well-known product model names (iPhone, Galaxy, MacBook, AirPods, Sony WH-*, Bose QC*, etc.) ALWAYS imply a clear category — never mark these as ambiguous.
+- "compare X and Y" queries are NEVER ambiguous — extract category from the product names and set brand_pref to null (do not pick a side).
+- Only set is_ambiguous=true when you genuinely cannot infer ANY useful category or intent, e.g. "get me something nice" or "buy it" with no prior context.
 
 {INTENT_EXAMPLES}
 
@@ -49,7 +59,8 @@ Respond ONLY with a JSON object:
     for turn in conversation_history[-6:]:  # last 6 turns for context
         messages.append(turn)
 
-    user_content = f"User preferences summary: {user_prefs.get('explicit', {})}\n\nUser message: {user_message}"
+    prefs = user_prefs if isinstance(user_prefs, dict) else {}
+    user_content = f"User preferences summary: {prefs.get('explicit', {})}\n\nUser message: {user_message}"
     messages.append({"role": "user", "content": user_content})
     return messages
 
@@ -91,6 +102,8 @@ Keep it conversational, concise, and preference-aware. Do NOT list specs robotic
     top3 = products[:3]
     product_summary = []
     for i, p in enumerate(top3):
+        if not isinstance(p, dict):
+            continue
         product_summary.append({
             "rank": i + 1,
             "name": p.get("name", ""),
@@ -104,13 +117,63 @@ Keep it conversational, concise, and preference-aware. Do NOT list specs robotic
             "match_reasons": p.get("scoring", {}).get("match_reasons", []),
         })
 
-    user_content = f"""User preferences: {user_prefs.get('explicit', {})}
-Implicit patterns: {user_prefs.get('implicit', {})}
+    prefs = user_prefs if isinstance(user_prefs, dict) else {}
+    user_content = f"""User preferences: {prefs.get('explicit', {})}
+Implicit patterns: {prefs.get('implicit', {})}
 
 Ranked products:
 {product_summary}
 
 Write the comparison."""
+
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_content},
+    ]
+
+
+# ── Head-to-head comparison prompt ──────────────────────────────────────────
+
+def head_to_head_comparison_prompt(products: list, user_prefs: dict) -> list[dict]:
+    """
+    Generates a strict head-to-head comparison between exactly the requested products.
+    Used when the user explicitly asked to compare specific models.
+    """
+    system = """You are a shopping assistant doing a direct head-to-head product comparison.
+The user asked to compare specific products. Your job:
+1. Compare ONLY the products provided — do not suggest alternatives.
+2. Highlight the key differences: price, specs/features, ratings, and value for money.
+3. Give a clear verdict: which one wins and WHY, in one sentence.
+4. End with: "Want me to go with the [winner]?"
+
+CRITICAL RULES:
+- The product data you receive IS current and accurate — treat every price, rating, and product name as real and verified.
+- NEVER mention your training data, knowledge cutoff, release dates, or whether a product "exists" or is "available". If it's in the data, it's real.
+- NEVER speculate about whether something is "overpriced for a renewed listing" or question the data. Take prices and specs at face value.
+- Be specific and concrete. Reference actual prices and ratings from the data provided.
+- Keep it to 3-5 sentences total."""
+
+    product_summary = []
+    for i, p in enumerate(products):
+        if not isinstance(p, dict):
+            continue
+        product_summary.append({
+            "name": p.get("name", ""),
+            "price": p.get("pricing", {}).get("current_price"),
+            "rating": p.get("ratings", {}).get("stars"),
+            "review_count": p.get("ratings", {}).get("review_count"),
+            "source": p.get("source", ""),
+            "composite_score": (p.get("scoring") or {}).get("composite_score"),
+            "match_reasons": (p.get("scoring") or {}).get("match_reasons", []),
+        })
+
+    prefs = user_prefs if isinstance(user_prefs, dict) else {}
+    user_content = f"""User preferences: {prefs.get('explicit', {})}
+
+Products to compare (head-to-head):
+{product_summary}
+
+Write the head-to-head comparison and give a clear verdict."""
 
     return [
         {"role": "system", "content": system},

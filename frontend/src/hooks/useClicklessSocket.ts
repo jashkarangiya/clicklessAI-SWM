@@ -3,13 +3,7 @@
  * ClickLess AI – useClicklessSocket
  *
  * React hook that manages WebSocket lifecycle tied to a session.
- * In mock mode (NEXT_PUBLIC_USE_MOCKS=true) it uses the mock transport.
- *
- * Returns:
- *   wsState  – current ConnectionState
- *   send     – typed send function
- *   connect  – start connection
- *   disconnect – close connection
+ * Used only for standalone contexts outside ClicklessSocketProvider.
  */
 import { useEffect, useRef, useCallback } from 'react';
 import { SocketClient, type ConnectionState } from '@/lib/ws/SocketClient';
@@ -18,13 +12,11 @@ import type { WebSocketOutgoingEvent } from '@/contracts/websocket';
 import { useChatStore } from '@/stores/chatStore';
 import { useAppDispatch } from '@/store/hooks';
 import { setWsState, setSiteConnections } from '@/store/slices/sessionSlice';
-import { MockSocketTransport } from '@/lib/mocks/mockSocketTransport';
 
-const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === 'true';
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000/ws';
 
 export function useClicklessSocket() {
-    const clientRef = useRef<SocketClient | MockSocketTransport | null>(null);
+    const clientRef = useRef<SocketClient | null>(null);
     const dispatch = useAppDispatch();
     const addMessage = useChatStore((s) => s.addMessage);
     const setTyping = useChatStore((s) => s.setTyping);
@@ -60,15 +52,9 @@ export function useClicklessSocket() {
 
     const connect = useCallback(() => {
         if (clientRef.current) return;
-        if (USE_MOCKS) {
-            const mock = new MockSocketTransport({ onMessage: handleMessage, onStateChange: handleStateChange });
-            clientRef.current = mock;
-            mock.connect();
-        } else {
-            const client = new SocketClient({ url: WS_URL, onMessage: handleMessage, onStateChange: handleStateChange });
-            clientRef.current = client;
-            client.connect();
-        }
+        const client = new SocketClient({ url: WS_URL, onMessage: handleMessage, onStateChange: handleStateChange });
+        clientRef.current = client;
+        client.connect();
     }, [handleMessage, handleStateChange]);
 
     const disconnect = useCallback(() => {

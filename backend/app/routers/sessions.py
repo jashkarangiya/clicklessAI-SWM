@@ -9,18 +9,14 @@ from app.services import user_service
 router = APIRouter(tags=["sessions"])
 
 
+
 class StoreSessionRequest(BaseModel):
     encrypted_state: str
 
 
 @router.post("/{user_id}/{site}", response_model=AuthSession, status_code=201)
 async def store_session(user_id: str, site: str, body: StoreSessionRequest):
-    user = await user_service.store_session(user_id, site, body.encrypted_state)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    session = user.auth.get(site)
-    if not session:
-        raise HTTPException(status_code=500, detail="Failed to store session")
+    session = await user_service.store_session(user_id, site, body.encrypted_state)
     return session
 
 

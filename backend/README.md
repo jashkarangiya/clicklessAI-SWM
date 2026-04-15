@@ -52,16 +52,16 @@ Edit `.env` if your database ports differ. See [Environment variables](#environm
 ### 5 — Start the server
 
 ```bash
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8002
 ```
 
-API is available at `http://localhost:8000`.
-Interactive docs: `http://localhost:8000/docs`
+API is available at `http://localhost:8002`.
+Interactive docs: `http://localhost:8002/docs`
 
 Once running, open:
 
-- **`http://localhost:8000/docs`** — Swagger UI (interactive, try out requests)
-- **`http://localhost:8000/redoc`** — ReDoc (read-only, cleaner layout)
+- **`http://localhost:8002/docs`** — Swagger UI (interactive, try out requests)
+- **`http://localhost:8002/redoc`** — ReDoc (read-only, cleaner layout)
 
 ---
 
@@ -135,7 +135,7 @@ backend/
 
 ## API overview
 
-Full spec: [openapi.yaml](openapi.yaml) or `http://localhost:8000/docs` when running.
+Full spec: [openapi.yaml](openapi.yaml) or `http://localhost:8002/docs` when running.
 
 | Tag | Base path | Summary |
 |---|---|---|
@@ -145,7 +145,7 @@ Full spec: [openapi.yaml](openapi.yaml) or `http://localhost:8000/docs` when run
 | orders | `/api/orders` | Order creation and tracking |
 | cache | `/api/cache` | Product search result cache |
 | conversations | `/api/conversations` | Conversation state (REST) |
-| websocket | `/ws/chat/{session_id}` | Real-time bidirectional chat |
+| websocket | `/ws` | Real-time bidirectional chat (event-based JSON protocol) |
 
 ---
 

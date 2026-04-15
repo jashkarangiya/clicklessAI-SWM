@@ -21,7 +21,11 @@ def _current_loop_id() -> int:
 def _get_state() -> dict[str, Any]:
     lid = _current_loop_id()
     if lid not in _state:
-        engine = create_async_engine(get_settings().postgres_url, echo=False)
+        engine = create_async_engine(
+            get_settings().postgres_url,
+            echo=False,
+            connect_args={"timeout": 3},
+        )
         factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
         _state[lid] = {"engine": engine, "factory": factory}
     return _state[_current_loop_id()]

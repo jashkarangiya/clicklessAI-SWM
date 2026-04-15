@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from app.db.mongo import get_users_collection
+from app.db.mongo import get_auth_sessions_collection, get_users_collection
 from app.models.user import (
     AuthSession,
     CreateUserRequest,
@@ -114,38 +114,60 @@ async def update_preference_weights(user_id: str, weights: PreferenceWeights) ->
     return _to_user(result).preferences.weights if result else None
 
 
-async def store_session(user_id: str, site: str, encrypted_state: str) -> Optional[UserDocument]:
-    col = get_users_collection()
-    session = AuthSession(
-        site=site,
-        encrypted_state=encrypted_state,
-        created_at=_now(),
+async def store_session(user_id: str, site: str, encrypted_state: str) -> AuthSession:
+    """Upsert an auth session into the dedicated auth_sessions collection.
+
+    Completely decoupled from the user document — works with any user_id format
+    (UUID, Google sub, etc.) without requiring a matching user record.
+    """
+    col = get_auth_sessions_collection()
+    now = _now()
+    session = AuthSession(site=site, encrypted_state=encrypted_state, created_at=now)
+    await col.update_one(
+        {"user_id": user_id, "site": site},
+        {"$set": {"encrypted_state": encrypted_state, "created_at": now}},
+        upsert=True,
     )
-    result = await col.find_one_and_update(
-        {"user_id": user_id},
-        {"$set": {f"auth.{site}": session.model_dump(), "last_active": _now()}},
-        return_document=True,
-    )
-    return _to_user(result) if result else None
+    return session
 
 
 async def get_session(user_id: str, site: str) -> Optional[AuthSession]:
-    user = await get_user(user_id)
-    if not user:
+    col = get_auth_sessions_collection()
+    doc = await col.find_one({"user_id": user_id, "site": site})
+    if not doc:
         return None
-    return user.auth.get(site)
+    doc.pop("_id", None)
+    return AuthSession(**doc)
 
 
 async def delete_session(user_id: str, site: str) -> bool:
-    col = get_users_collection()
-    result = await col.find_one_and_update(
-        {"user_id": user_id},
-        {"$unset": {f"auth.{site}": ""}, "$set": {"last_active": _now()}},
-        return_document=True,
-    )
-    return result is not None
+    col = get_auth_sessions_collection()
+    result = await col.delete_one({"user_id": user_id, "site": site})
+    return result.deleted_count > 0
 
 
 async def list_sessions(user_id: str) -> Dict[str, AuthSession]:
-    user = await get_user(user_id)
-    return user.auth if user else {}
+    col = get_auth_sessions_collection()
+    docs = await col.find({"user_id": user_id}).to_list(100)
+    out: Dict[str, AuthSession] = {}
+    for doc in docs:
+        doc.pop("_id", None)
+        try:
+            out[doc["site"]] = AuthSession(**doc)
+        except Exception:
+            pass
+    return out
+
+
+async def get_user_by_email(email: str) -> Optional[UserDocument]:
+    col = get_users_collection()
+    doc = await col.find_one({"email": email})
+    return _to_user(doc) if doc else None
+
+
+async def set_password(user_id: str, password_hash: str) -> None:
+    col = get_users_collection()
+    await col.update_one(
+        {"user_id": user_id},
+        {"$set": {"password_hash": password_hash, "last_active": _now()}},
+    )

@@ -2,7 +2,7 @@
 
 > **Shop by describing what you want. ClickLess finds it, compares it, and checks out — pausing for your confirmation before every purchase.**
 
-ClickLess AI is a human-in-the-loop conversational shopping platform. A user types what they want to buy; the system searches Amazon and Walmart simultaneously, ranks results against the user's preferences, and executes the purchase through Playwright browser automation — with a hard confirmation gate that requires explicit user approval before any order is placed.
+ClickLess AI is a human-in-the-loop conversational shopping platform. A user types what they want to buy; the system detects intent, enriches missing fields from user preferences, and searches Amazon + Walmart simultaneously. Ranked results are returned in a comparison grid with LLM-generated reasoning. The user can initiate a purchase — system navigates checkout via Playwright with a hard confirmation gate before placing any order. Preferences are learned over time to reduce friction on future turns.
 
 ---
 
@@ -14,7 +14,7 @@ User message
         └─► LangGraph orchestration
               ├─► Intent detection + validation
               ├─► Playwright scraper (Amazon + Walmart in parallel)
-              ├─► Preference-weighted ranking
+              ├─► Preference-weighted ranking  (Qwen3 LLM reasoning)
               └─► Purchase confirmation gate ──► Playwright checkout
                         ↑
               No purchase without explicit user confirmation
@@ -28,11 +28,13 @@ Full architecture detail: [`docs/architecture.md`](docs/architecture.md)
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | Next.js 16 (App Router), React 19, Mantine 8, Redux Toolkit, Zustand |
+| **Frontend** | Next.js 15 (App Router), React, Mantine UI, Redux Toolkit, Zustand |
 | **Backend** | FastAPI + Uvicorn, Python 3.11 |
-| **Orchestration** | LangGraph state machine, GPT-4 / Claude |
-| **Scraping** | Playwright (async, parallel per site) |
+| **Orchestration** | LangGraph, OpenAI-compatible LLM (Qwen3) |
+| **Scraping** | Playwright (async, parallel per site), Chromium |
 | **Databases** | MongoDB (users + conversations), PostgreSQL (orders), Redis (cache + sessions) |
+| **Real-time** | WebSocket (`/ws/chat/{session_id}`) |
+| **TTS / STT** | ElevenLabs API |
 | **Containerisation** | Docker + Docker Compose |
 
 ---
@@ -48,12 +50,12 @@ clicklessAI-SWM/
 │   ├── openapi.yaml    Full OpenAPI 3.0 spec
 │   ├── docker-compose.yaml
 │   └── README.md       → Backend setup guide
-├── orchestration/      LangGraph state machine
+├── orchestration/      LangGraph pipeline (intent, search, ranking, purchase)
 │   ├── graph.py        Node + edge definitions
 │   ├── nodes/          One file per LangGraph node
 │   ├── state.py        StateEnvelope definition
 │   └── scoring.py      Preference-weighted product scoring
-├── scraper/            Playwright scraper (Amazon + Walmart)
+├── scraper/            Playwright scrapers for Amazon and Walmart
 ├── database/           Database schema / migration helpers
 ├── docs/               Shared technical documentation (see below)
 ├── CONTRIBUTING.md     Branch and PR workflow
@@ -73,7 +75,14 @@ clicklessAI-SWM/
 
 ---
 
-### 1 — Start the databases
+### 1 — Clone
+
+```bash
+git clone https://github.com/jashkarangiya/clicklessAI-SWM.git
+cd clicklessAI-SWM
+```
+
+### 2 — Start the databases
 
 ```bash
 cd backend
@@ -82,46 +91,45 @@ docker compose up mongo postgres redis -d
 
 This starts MongoDB (27017), PostgreSQL (5432), and Redis (6379) with persistent volumes.
 
-### 2 — Backend
+### 3 — Backend
 
 ```bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env             # edit if your ports differ
-uvicorn app.main:app --reload
+cp .env.example .env             # fill in secrets
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8002
 ```
 
-API available at `http://localhost:8000`  
-Interactive docs: `http://localhost:8000/docs`
+API available at `http://localhost:8002`  
+Interactive docs: `http://localhost:8002/docs`
 
 > **Critical env vars:** `SESSION_ENCRYPTION_KEY` (must be exactly 32 bytes) and `APP_SECRET_KEY`. Change both from their `changeme` defaults in any non-local environment. See [`docs/deployment.md`](docs/deployment.md) for the full variable reference.
 
-### 3 — Frontend
+### 4 — Frontend
 
 ```bash
 cd frontend
 npm install
-cp .env.local.example .env.local   # set NEXT_PUBLIC_API_URL
 npm run dev
 ```
 
-App available at `http://localhost:3000`
-
-### 4 — Seed sample data (optional)
-
-```bash
-# Databases must be running first
-cd backend
-python scripts/seed_data.py
-```
+App available at `http://localhost:3000` (`.env.local` is pre-configured to connect to port 8002)
 
 ### Full stack with Docker Compose
 
 ```bash
 cd backend
 docker compose up --build
+```
+
+### Seed sample data (optional)
+
+```bash
+# Databases must be running first
+cd backend
+python scripts/seed_data.py
 ```
 
 ---
@@ -142,13 +150,13 @@ docker compose up --build
 
 ## Key design principles
 
-1. **No purchase without explicit confirmation.** Every order goes through a hard confirmation gate that requires the user to actively approve the exact product, price, address, and payment method before Playwright touches checkout.
+1. **No purchase without explicit confirmation.** Every order goes through a hard confirmation gate — the user must approve the exact product, price, address, and payment method before Playwright touches checkout.
 
 2. **Clarification over assumption.** When a query is ambiguous, the system asks a targeted question (up to 3 per turn) rather than guessing. Over time it learns enough about the user to need fewer questions.
 
 3. **Credentials are never stored.** The user logs in to Amazon/Walmart themselves via a visible browser window. Only the resulting encrypted session cookies are stored — never usernames or passwords.
 
-4. **Parallel scraping.** Amazon and Walmart are scraped simultaneously via `asyncio.gather()`. Results are ranked by a preference-weighted composite score (price × 0.30, rating × 0.25, delivery × 0.20, preference match × 0.25). Weights adapt after every completed interaction.
+4. **Parallel scraping with adaptive ranking.** Amazon and Walmart are scraped simultaneously via `asyncio.gather()`. Results are ranked by a preference-weighted composite score (price × 0.30, rating × 0.25, delivery × 0.20, preference match × 0.25). Weights adapt after every completed interaction.
 
 ---
 

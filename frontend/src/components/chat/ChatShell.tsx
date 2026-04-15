@@ -10,7 +10,7 @@
  * - Notification badge on nav items
  * - Demo session loading on history click
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   AppShell, Group, Text, ActionIcon, Button, Avatar,
   Menu, Divider, Box, Stack, Tooltip, UnstyledButton, TextInput,
@@ -28,7 +28,8 @@ import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { logout } from '@/store/slices/sessionSlice';
 import { useChatStore } from '@/stores/chatStore';
-import { DEMO_SESSIONS } from '@/lib/mocks/demoChatSessions';
+import { listChatSessions, getChatSession, type ChatSessionMeta } from '@/lib/api/chatHistoryService';
+import type { FrontendChatMessage } from '@/contracts/chat';
 
 // ── Route → page title map ────────────────────────────────────────────────────
 const PAGE_TITLES: [string, string][] = [
@@ -46,22 +47,6 @@ const NAV_ITEMS = [
   { href: '/app/notifications', icon: IconBell,          label: 'Notifications' },
 ];
 
-// ── Mock session history ──────────────────────────────────────────────────────
-const MOCK_SESSIONS: Record<string, { id: string; label: string }[]> = {
-  Today: [
-    { id: 's1', label: 'Noise-canceling headphones under $300' },
-    { id: 's2', label: 'Compare Dell XPS vs MacBook Pro 14'   },
-  ],
-  Yesterday: [
-    { id: 's3', label: 'Best robot vacuum under $400'  },
-    { id: 's4', label: 'Reorder coffee pods — Lavazza' },
-  ],
-  'This week': [
-    { id: 's5', label: 'Samsung 65″ 4K TV deals'            },
-    { id: 's6', label: 'Logitech MX Master 3S vs MX Keys' },
-  ],
-};
-
 // ── Layout component ──────────────────────────────────────────────────────────
 interface AppShellLayoutProps { children: React.ReactNode }
 
@@ -72,13 +57,16 @@ export function AppShellLayout({ children }: AppShellLayoutProps) {
 
   const [navOpen,          setNavOpen]          = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [unreadCount,      setUnreadCount]      = useState(3); // demo badge
+  const [unreadCount,      setUnreadCount]      = useState(0);
   const [historySearch,    setHistorySearch]    = useState('');
 
   const user         = useAppSelector((s) => s.session.user);
   const wsState      = useAppSelector((s) => s.session.wsState);
   const clearHistory = useChatStore((s) => s.clearHistory);
-  const loadMessages = useChatStore((s) => s.loadMessages);
+  const loadSession  = useChatStore((s) => s.loadSession);
+
+  const [sessions,     setSessions]     = useState<ChatSessionMeta[]>([]);
+  const fetchedRef = useRef(false);
 
   // ── Persist collapse state ──────────────────────────────────────────────────
   useEffect(() => {
@@ -101,6 +89,19 @@ export function AppShellLayout({ children }: AppShellLayoutProps) {
     if (pathname.startsWith('/app/notifications')) setUnreadCount(0);
   }, [pathname]);
 
+  // ── Fetch session history from backend ─────────────────────────────────────
+  useEffect(() => {
+    if (!user?.id || fetchedRef.current) return;
+    fetchedRef.current = true;
+    listChatSessions(user.id).then(setSessions).catch(() => {});
+  }, [user?.id]);
+
+  // Re-fetch sessions after new chat (when we return to the sidebar)
+  const refreshSessions = useCallback(() => {
+    if (!user?.id) return;
+    listChatSessions(user.id).then(setSessions).catch(() => {});
+  }, [user?.id]);
+
   // ── Keyboard shortcuts ──────────────────────────────────────────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -115,20 +116,25 @@ export function AppShellLayout({ children }: AppShellLayoutProps) {
   const handleNewChat = useCallback(() => {
     clearHistory();
     router.push('/app/chat');
-  }, [clearHistory, router]);
+    // Refresh sidebar list after a short delay so the new session appears
+    setTimeout(refreshSessions, 1500);
+  }, [clearHistory, router, refreshSessions]);
 
   const handleLogout = () => {
     dispatch(logout());
     router.push('/login');
   };
 
-  const handleSessionClick = useCallback((id: string) => {
-    const demo = DEMO_SESSIONS[id];
-    if (demo) {
-      loadMessages(demo.messages);
-      router.push('/app/chat');
+  const handleSessionClick = useCallback(async (sessionId: string) => {
+    try {
+      const messages = await getChatSession(sessionId);
+      loadSession(sessionId, messages as FrontendChatMessage[]);
+    } catch {
+      // If load fails, just start fresh with that session ID
+      clearHistory();
     }
-  }, [loadMessages, router]);
+    router.push('/app/chat');
+  }, [loadSession, clearHistory, router]);
 
   // ── Derived values ──────────────────────────────────────────────────────────
   const isOnChat  = pathname.startsWith('/app/chat');
@@ -140,17 +146,29 @@ export function AppShellLayout({ children }: AppShellLayoutProps) {
     wsState === 'reconnecting' ? 'var(--cl-warning)'  :
     '#CBD5E1';
 
-  // Filter session history by search term
+  // Group sessions by relative date bucket and filter by search term
   const filteredSessions = useMemo(() => {
-    if (!historySearch.trim()) return MOCK_SESSIONS;
-    const q = historySearch.toLowerCase();
-    const result: typeof MOCK_SESSIONS = {};
-    for (const [group, items] of Object.entries(MOCK_SESSIONS)) {
-      const filtered = items.filter((s) => s.label.toLowerCase().includes(q));
-      if (filtered.length) result[group] = filtered;
+    const q = historySearch.trim().toLowerCase();
+    const list = q
+      ? sessions.filter((s) => (s.title ?? '').toLowerCase().includes(q))
+      : sessions;
+
+    const now = Date.now();
+    const DAY = 86_400_000;
+    const result: Record<string, { id: string; label: string }[]> = {};
+
+    for (const s of list) {
+      const age = now - new Date(s.updated_at).getTime();
+      const bucket =
+        age < DAY       ? 'Today'
+        : age < 2 * DAY ? 'Yesterday'
+        : age < 7 * DAY ? 'This week'
+        : age < 30 * DAY ? 'This month'
+        : 'Older';
+      (result[bucket] ??= []).push({ id: s.session_id, label: s.title ?? 'Untitled' });
     }
     return result;
-  }, [historySearch]);
+  }, [sessions, historySearch]);
 
   // ── Shared user dropdown ────────────────────────────────────────────────────
   const userInitial = user?.name?.[0]?.toUpperCase() ?? 'U';
@@ -483,7 +501,7 @@ function SessionHistory({
           </Text>
           <Stack gap={1}>
             {items.map((s) => (
-              <SessionItem key={s.id} label={s.label} isDemoAvailable={!!DEMO_SESSIONS[s.id]}
+              <SessionItem key={s.id} label={s.label}
                 onClick={() => onSelectSession(s.id)} />
             ))}
           </Stack>
@@ -494,9 +512,9 @@ function SessionHistory({
 }
 
 function SessionItem({
-  label, isDemoAvailable, onClick,
+  label, onClick,
 }: {
-  label: string; isDemoAvailable: boolean; onClick: () => void;
+  label: string; onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
   return (

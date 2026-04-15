@@ -4,15 +4,16 @@ for the user to select a product, refine, or exit.
 """
 from langgraph.types import interrupt
 
-from state import AgentState
+from state import AgentState, normalize_agent_state
 from llm_client import chat
-from prompts import comparison_generation_prompt
+from prompts import comparison_generation_prompt, head_to_head_comparison_prompt
 from scoring import get_comparison_highlights
 
 MAX_DISPLAYED = 5
 
 
 def present_results_node(state: AgentState) -> AgentState:
+    normalize_agent_state(state)
     state["metadata"]["nodes_visited"].append("present_results")
 
     products = state.get("products", [])[:MAX_DISPLAYED]
@@ -22,8 +23,12 @@ def present_results_node(state: AgentState) -> AgentState:
         return state
 
     # ── Generate natural-language comparison via LLM ──────────────────────────
+    is_comparison = bool(state.get("metadata", {}).get("is_comparison"))
     try:
-        messages = comparison_generation_prompt(products, state["user_preferences"])
+        if is_comparison:
+            messages = head_to_head_comparison_prompt(products, state["user_preferences"])
+        else:
+            messages = comparison_generation_prompt(products, state["user_preferences"])
         comparison_text = chat(messages)
     except Exception as exc:
         comparison_text = f"Here are the top results I found. (LLM error: {exc})"

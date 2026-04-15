@@ -27,7 +27,8 @@ The LangGraph state machine is the backbone of the orchestration layer. It defin
 | `intent_detection` | `status = needs_clarification` | user message (loop back) |
 | `intent_detection` | `status = ready`, `intent = product_search` | `validate_enrich` |
 | `intent_detection` | `status = ready`, `intent = purchase` | `validate_enrich` |
-| `intent_detection` | `status = ready`, `intent = general_chat` | LLM direct response |
+| `intent_detection` | `status = ready`, `intent = chat` | LLM direct response |
+| `intent_detection` | `status = ready`, `intent = pref_update` | `update_preferences` |
 | `validate_enrich` | `status = needs_clarification` | user message (loop back) |
 | `validate_enrich` | `status = ready`, `intent = product_search` | `product_search` |
 | `validate_enrich` | `status = ready`, `intent = purchase` | `purchase_confirmation` |
@@ -59,9 +60,14 @@ The `validate_enrich` node computes a confidence score for each required field a
 
 | Intent | Required | Nice-to-have |
 |---|---|---|
-| `product_search` | `category` | `budget`, `brand`, `sort_preference`, `delivery_speed` |
-| `purchase` | `product_id`, `delivery_address`, `payment_method` | `gift_wrap`, `delivery_notes` |
-| `refine_search` | `original_query`, `refinement_criteria` | `sort_change`, `filter_change` |
+| `product_search` | *(none)* — category is inferred from message keywords or defaults to `electronics` | `budget`, `brand_pref`, `sort_by` |
+| `purchase` | `product_id`, `delivery_address`, `payment_method` | — |
+| `refine_search` | *(none)* — refinement is inferred from message | `budget`, `sort_by` |
+| `browse` | *(none)* | — |
+| `pref_update` | *(none)* | — |
+| `chat` | *(none)* | — |
+
+> **Note:** `intent_detection` handles category ambiguity with one targeted clarification question. `validate_enrich` does not ask for category again — it infers from message keywords using a fast lookup table, falling back to `"electronics"` if nothing matches.
 
 ### Question format
 Questions are specific and offer clickable options where possible. Instead of "What kind of headphones do you want?", the system asks "Are you looking for over-ear, on-ear, or earbuds?" This reduces friction and provides structured data.

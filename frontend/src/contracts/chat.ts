@@ -43,6 +43,7 @@ const BaseMessage = z.object({
 export const TextMessageSchema = BaseMessage.extend({
     type: z.literal('text'),
     content: z.string(),
+    isStreaming: z.boolean().optional(),
 });
 
 export const StatusMessageSchema = BaseMessage.extend({

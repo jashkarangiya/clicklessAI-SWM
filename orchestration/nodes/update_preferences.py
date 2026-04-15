@@ -2,23 +2,31 @@
 update_preferences node — extracts explicit/implicit preferences from the interaction
 and persists them via mock_api (or Member C's API in production).
 """
-from state import AgentState
+from state import AgentState, normalize_agent_state
 from llm_client import chat_json
 from prompts import preference_extraction_prompt
 from mock_api import update_user_preferences, update_scoring_weights, log_order
 from scoring import adapt_weights
 
 
+def _as_dict(v: object) -> dict:
+    """Checkpoint merge may set fields to non-dicts; avoid .get on wrong types."""
+    return v if isinstance(v, dict) else {}
+
+
 def update_preferences_node(state: AgentState) -> AgentState:
+    if not isinstance(state, dict):
+        raise TypeError("update_preferences_node: state must be a dict")
+    normalize_agent_state(state)
     state["metadata"]["nodes_visited"].append("update_preferences")
 
-    conversation_history = state.get("conversation_history", [])
+    conversation_history = state.get("conversation_history") or []
     chosen_product = state.get("selected_product")
-    all_products = state.get("products", [])
+    all_products = [p for p in (state.get("products") or []) if isinstance(p, dict)]
 
     # Collect rejected products (products that were shown but not selected)
     rejected = []
-    if chosen_product:
+    if chosen_product and isinstance(chosen_product, dict):
         chosen_id = chosen_product.get("product_id") or chosen_product.get("source_url")
         for p in all_products:
             pid = p.get("product_id") or p.get("source_url")
@@ -29,7 +37,7 @@ def update_preferences_node(state: AgentState) -> AgentState:
     pref_updates = {"explicit": [], "implicit": [], "rejections": rejected}
     try:
         messages = preference_extraction_prompt(conversation_history, chosen_product, rejected)
-        extracted = chat_json(messages)
+        extracted = chat_json(messages) or {}
         pref_updates["explicit"] = extracted.get("explicit", [])
         pref_updates["implicit"] = extracted.get("implicit", [])
         pref_updates["rejections"].extend(extracted.get("rejections", []))
@@ -49,14 +57,16 @@ def update_preferences_node(state: AgentState) -> AgentState:
         update_scoring_weights(state["user_id"], new_weights)
 
     # ── Log confirmed order ───────────────────────────────────────────────────
-    confirmation = state.get("purchase_confirmation", {})
+    # Must be a dict: merge can store null or wrong types; `x or {}` fails if x is truthy non-dict (e.g. [])
+    confirmation = _as_dict(state.get("purchase_confirmation"))
     if confirmation.get("user_confirmed") and confirmation.get("order_id"):
+        product = _as_dict(confirmation.get("product"))
         log_order(state["user_id"], {
             "order_id": confirmation["order_id"],
-            "product": confirmation["product"].get("name", ""),
-            "price": confirmation["product"].get("price"),
-            "site": confirmation["product"].get("source", ""),
-            "date": confirmation.get("confirmed_at", "")[:10],
+            "product": product.get("name", ""),
+            "price": product.get("price"),
+            "site": product.get("source", ""),
+            "date": (confirmation.get("confirmed_at") or "")[:10],
             "satisfaction": None,
         })
 

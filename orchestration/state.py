@@ -27,6 +27,65 @@ class AgentState(TypedDict):
     present_action: Optional[str]                # "select" | "refine" | "exit"
     llm_response: Optional[str]                  # for general_chat direct responses
     retry_node: Optional[str]                    # which node to retry on retryable errors
+    amazon_cookies: List[Dict[str, Any]]         # session cookies captured from user's Amazon login
+
+
+_DEFAULT_PARSED = {
+    "category": None,
+    "attributes": {},
+    "budget": None,
+    "brand_pref": None,
+    "sort_by": None,
+}
+
+
+def normalize_query_parsed(state: AgentState) -> None:
+    """
+    Ensure query and query.parsed are dicts. LLM output or checkpoints may set
+    parsed to null; dict.setdefault('parsed', {}) does not replace None.
+    """
+    q = state.get("query")
+    if not isinstance(q, dict):
+        state["query"] = {
+            "raw": state.get("user_message") or "",
+            "parsed": {**_DEFAULT_PARSED},
+        }
+        return
+    p = q.get("parsed")
+    if not isinstance(p, dict):
+        q["parsed"] = {**_DEFAULT_PARSED}
+
+
+def normalize_agent_state(state: AgentState) -> None:
+    """
+    LangGraph checkpoints may omit keys or set them to null. Nodes assume dict/list
+    shapes (e.g. user_preferences.get, metadata['nodes_visited'].append).
+    """
+    normalize_query_parsed(state)
+
+    if not isinstance(state.get("user_preferences"), dict):
+        state["user_preferences"] = {}
+    if not isinstance(state.get("conversation_history"), list):
+        state["conversation_history"] = []
+    if not isinstance(state.get("errors"), list):
+        state["errors"] = []
+
+    md = state.get("metadata")
+    if not isinstance(md, dict):
+        state["metadata"] = {
+            "nodes_visited": [],
+            "total_latency_ms": 0,
+            "scrape_results_count": {"amazon": 0, "walmart": 0},
+        }
+    else:
+        md.setdefault("nodes_visited", [])
+        md.setdefault("total_latency_ms", 0)
+        md.setdefault("scrape_results_count", {"amazon": 0, "walmart": 0})
+        if not isinstance(md["nodes_visited"], list):
+            md["nodes_visited"] = []
+        scr = md.get("scrape_results_count")
+        if not isinstance(scr, dict):
+            md["scrape_results_count"] = {"amazon": 0, "walmart": 0}
 
 
 def new_state(user_id: str, session_id: str, user_message: str) -> AgentState:
@@ -41,7 +100,7 @@ def new_state(user_id: str, session_id: str, user_message: str) -> AgentState:
         timestamp=datetime.now(timezone.utc).isoformat(),
         intent="",
         status="ready",
-        query={"raw": user_message, "parsed": {"category": None, "attributes": {}, "budget": None, "brand_pref": None, "sort_by": None}},
+        query={"raw": user_message, "parsed": {**_DEFAULT_PARSED}},
         missing_fields=[],
         clarification=None,
         products=[],
@@ -57,4 +116,5 @@ def new_state(user_id: str, session_id: str, user_message: str) -> AgentState:
         present_action=None,
         llm_response=None,
         retry_node=None,
+        amazon_cookies=[],
     )

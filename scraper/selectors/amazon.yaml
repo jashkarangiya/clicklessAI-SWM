@@ -1,0 +1,64 @@
+# Amazon CSS/XPath Selector Registry
+# Used by scrapers to target DOM elements on Amazon pages
+# Update these when Amazon changes their page structure
+
+search_results:
+  # Main search results container
+  container: "div.s-main-slot div[data-component-type='s-search-result']"
+  # Individual product fields within each result
+  title: "h2 a span"
+  title_link: "h2 a.a-link-normal"
+  price_whole: "span.a-price span.a-offscreen"
+  price_original: "span.a-price[data-a-strike='true'] span.a-offscreen"
+  rating: "span.a-icon-alt"
+  review_count: "span.a-size-base.s-underline-text"
+  image: "img.s-image"
+  delivery: "span.a-text-bold[aria-label]"
+  prime_badge: "i.a-icon-prime"
+  sponsored_label: "span.puis-label-popover-default"
+  out_of_stock: "span.a-color-price"
+
+product_detail:
+  # Product detail page selectors
+  title: "#productTitle"
+  price: "span.a-price span.a-offscreen"
+  price_original: "span.a-price[data-a-strike='true'] span.a-offscreen"
+  rating: "#acrPopover span.a-icon-alt"
+  review_count: "#acrCustomerReviewText"
+  description: "#productDescription p"
+  feature_bullets: "#feature-bullets ul li span.a-list-item"
+  images: "#altImages ul li img"
+  main_image: "#landingImage"
+  specifications: "#productDetails_techSpec_section_1 tr"
+  availability: "#availability span"
+  brand: "#bylineInfo"
+  category_breadcrumb: "#wayfinding-breadcrumbs_container ul li a"
+  # Top reviews
+  top_reviews: "#cm-cr-dp-review-list div.review"
+  review_text: "span.review-text-content span"
+  review_rating: "i.review-rating span.a-icon-alt"
+  review_author: "span.a-profile-name"
+  # Related products
+  related_products: "div.a-carousel-card a.a-link-normal"
+  related_title: "div.a-carousel-card div.p13n-sc-truncate-desktop-type2"
+  related_price: "div.a-carousel-card span.a-price span.a-offscreen"
+  related_image: "div.a-carousel-card img"
+
+checkout:
+  # Checkout flow selectors
+  add_to_cart: "#add-to-cart-button"
+  cart_confirmation: "#hlb-view-cart-announce"
+  proceed_to_checkout: "#sc-buy-box-ptc-button input"
+  place_order: "#submitOrderButtonId input"
+  order_confirmation: "#thankyou-main"
+  order_id: "span.a-color-tertiary + span"
+  delivery_date: "#delivery-estimate"
+  cart_item_title: "span.a-truncate-cut"
+  cart_item_price: "span.sc-product-price"
+  checkout_address: "#address-book-entry-0"
+  checkout_payment: "#pm_0"
+  cart_count: "#nav-cart-count"
+
+pagination:
+  next_page: "a.s-pagination-next"
+  page_numbers: "span.s-pagination-item"
