@@ -15,5 +15,11 @@ langchain-core>=0.2.0
 openai>=1.30.0
 pyyaml>=6.0
 playwright>=1.40.0
+
+# Scraper (orchestration imports these at runtime via scraper.scrapers.amazon_http)
+curl_cffi>=0.7.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+
 pytest==8.2.0
 pytest-asyncio==0.23.6
